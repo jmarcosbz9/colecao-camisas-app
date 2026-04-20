@@ -1,0 +1,154 @@
+<template>
+  <!-- Se não tem fotos: não renderiza nada -->
+  <div class="thumbs" v-if="thumbItems.length">
+    <img
+      v-for="(t, idx) in thumbItems"
+      :key="t.key || idx"
+      class="thumb"
+      :src="t.src"
+      alt=""
+      loading="lazy"
+      @error="onImgError"
+      @click.stop="emitOpen(idx)"
+      title="Abrir"
+    />
+  </div>
+</template>
+
+<script>
+import { FILE_BASE } from '@/lib/base'
+
+export default {
+  name: 'Thumbs',
+  emits: ['open'],
+  props: {
+    // pode vir array já parseado OU string JSON do MySQL
+    files: { type: [Array, String, Object, null], default: null },
+    fotos: { type: [Array, String, Object, null], default: null }, // compat (alguns lugares usam fotos)
+  },
+
+  computed: {
+    normalizedFiles() {
+      // prioridade: files; fallback: fotos
+      const raw = this.files != null ? this.files : this.fotos
+      return this.parseFotos(raw)
+    },
+
+    thumbItems() {
+      const base = this.normBase(FILE_BASE || '/uploads')
+
+      // Monta lista de thumbs e fullSrc correspondentes.
+      const out = []
+      for (let i = 0; i < this.normalizedFiles.length; i++) {
+        const f = this.normalizedFiles[i] || {}
+
+        const thumbPath = f.thumbnail || f.thumb || ''
+        const fullPath = f.name || f.file || f.full || ''
+
+        const thumbSrc = thumbPath ? this.makeUrl(base, thumbPath) : ''
+        const fullSrc = fullPath ? this.makeUrl(base, fullPath) : (thumbSrc || '')
+
+        // Se não tem nada, ignora
+        if (!thumbSrc && !fullSrc) continue
+
+        out.push({
+          key: f.thumbnail || f.thumb || f.name || f.file || i,
+          src: thumbSrc || fullSrc, // o que aparece como thumb
+          thumbSrc: thumbSrc || fullSrc,
+          fullSrc: fullSrc || thumbSrc,
+          raw: f,
+        })
+      }
+      return out
+    },
+  },
+
+  methods: {
+    emitOpen(idx) {
+      const items = this.thumbItems.map((t) => ({
+        thumbSrc: t.thumbSrc,
+        fullSrc: t.fullSrc,
+        raw: t.raw,
+      }))
+      this.$emit('open', { index: idx, items })
+    },
+
+    parseFotos(raw) {
+      if (!raw) return []
+
+      // Já veio array
+      if (Array.isArray(raw)) return raw
+
+      // Às vezes vem objeto único (não-array)
+      if (typeof raw === 'object') return [raw]
+
+      // String: tenta JSON.parse
+      if (typeof raw === 'string') {
+        let s = raw.trim()
+
+        // Alguns dumps vêm com aspas externas tipo "'[ ... ]'"
+        if ((s[0] === "'" && s[s.length - 1] === "'") || (s[0] === '"' && s[s.length - 1] === '"')) {
+          s = s.slice(1, -1)
+        }
+
+        try {
+          const parsed = JSON.parse(s)
+          return Array.isArray(parsed) ? parsed : (parsed ? [parsed] : [])
+        } catch (e) {
+          return []
+        }
+      }
+
+      return []
+    },
+
+    normBase(b) {
+      const s = String(b || '').trim()
+      if (!s) return ''
+      return s.replace(/\/+$/, '') // remove / final
+    },
+
+    makeUrl(base, path) {
+      const p = String(path || '').trim()
+      if (!p) return ''
+
+      // Se já for URL absoluta, usa como está
+      if (/^https?:\/\//i.test(p)) return p
+
+      // remove / iniciais pra não virar //uploads//...
+      const clean = p.replace(/^\/+/, '')
+
+      // base vazio => volta só o path
+      if (!base) return '/' + clean
+
+      return base + '/' + clean
+    },
+
+    onImgError(ev) {
+      // Esconde a imagem quebrada
+      const img = ev && ev.target
+      if (img && img.style) {
+        img.style.display = 'none'
+      }
+    },
+  },
+}
+</script>
+
+<style scoped>
+.thumbs {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.thumb {
+  height: 64px;
+  aspect-ratio: 118 / 180;
+  width: auto;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+  cursor: pointer;
+}
+</style>

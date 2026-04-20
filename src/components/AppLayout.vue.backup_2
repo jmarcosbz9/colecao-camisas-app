@@ -1,0 +1,229 @@
+<template>
+  <div class="app-layout">
+    <!-- Aviso global: sessão expirada -->
+    <div v-if="sessionExpired" class="sess-toast" role="status" aria-live="polite">
+      <div class="sess-toast__msg">Sessão expirada. Faça login novamente.</div>
+      <button class="sess-toast__btn" type="button" @click="goLogin">Ir para login</button>
+    </div>
+
+    <!-- Header Fixo -->
+    <!-- Passamos o contexto calculado dinamicamente -->
+    <!-- E o userName recuperado de forma reativa -->
+    <Header
+      class="app-header"
+      :context="context"
+      :user-name="userName"
+      @search-change="onSearchChange"
+      @user-logout="onUserLogout"
+    />
+
+    <!-- Área Principal de Conteúdo -->
+    <main class="app-main">
+      <router-view />
+    </main>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import Header from './Header.vue'
+import { getUser, clearAuth } from '../utils/auth'
+import http from '../lib/http'
+
+// Router
+const router = useRouter()
+const route = useRoute()
+
+// Estado Local
+const userName = ref('')
+
+// Sessão expirada (401)
+const sessionExpired = ref(false)
+
+function showSessionExpired() {
+  sessionExpired.value = true
+  try { sessionStorage.setItem('session_expired', '1') } catch (e) {}
+}
+
+function handleAuthExpired() {
+  showSessionExpired()
+}
+
+// Computed: Contexto baseado na URL (Simples e Infalível)
+const context = computed(() => {
+  // Se a rota começar com /outros, contexto é 'outros'. Senão 'flamengo'.
+  if (route.path.startsWith('/outros')) {
+    return 'outros'
+  }
+  return 'flamengo'
+})
+
+// === Gerenciamento de Usuário ===
+
+// Tenta carregar do localStorage ou Backend
+async function refreshUser() {
+  // 1. Tenta cache local (mais rápido)
+  const localUser = getUser()
+  if (localUser && localUser.username) {
+    userName.value = localUser.username
+    return
+  }
+
+  // 2. Se falhar, tenta API
+  try {
+    const res = await http.get('/api/auth/me')
+    if (res.data && res.data.username) {
+      userName.value = res.data.username
+    }
+  } catch (e) {
+    // Silencioso: se der erro aqui, o user provavelmente não está logado
+    // O router guard vai chutar ele se a rota exigir auth
+    console.debug('Failed to fetch user info', e)
+    userName.value = ''
+  }
+}
+
+// Event Listeners
+function handleUserUpdate(e) {
+  // Evento disparado pelo auth.js quando login/logout acontece
+  const u = e.detail
+  userName.value = u ? u.username : ''
+}
+
+function handleStorage(e) {
+  // Sincronia entre abas
+  if (e.key === 'user') {
+    refreshUser()
+  }
+}
+
+// Ciclo de Vida
+onMounted(() => {
+  refreshUser()
+  window.addEventListener('user-updated', handleUserUpdate)
+  window.addEventListener('storage', handleStorage)
+
+  // restaura flag se a página foi recarregada após 401
+  try {
+    if (sessionStorage.getItem('session_expired') === '1') {
+      sessionExpired.value = true
+    }
+  } catch (e) {}
+
+  window.addEventListener('auth:expired', handleAuthExpired)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('user-updated', handleUserUpdate)
+  window.removeEventListener('storage', handleStorage)
+  window.removeEventListener('auth:expired', handleAuthExpired)
+})
+
+// === Ações do Header ===
+
+function goLogin() {
+  // limpa flags do aviso
+  try {
+    sessionStorage.removeItem('session_expired')
+    sessionStorage.removeItem('auth_expired_notified')
+  } catch (e) {}
+
+  // limpa auth e vai pro login
+  clearAuth()
+  sessionExpired.value = false
+
+  // opcional: mantém redirect pra voltar depois do login
+  router.push({ name: 'login', query: { redirect: route.fullPath } }).catch(() => {
+    router.push({ name: 'login' })
+  })
+}
+
+function onUserLogout() {
+  try {
+    sessionStorage.removeItem('session_expired')
+    sessionStorage.removeItem('auth_expired_notified')
+  } catch (e) {}
+
+  clearAuth() // Limpa token/user e dispara evento
+  router.push({ name: 'login' })
+}
+
+function onSearchChange(term) {
+  const q = String(term || '').trim()
+
+  // evento global para as views reagirem
+  window.dispatchEvent(new CustomEvent('cm-search-change', {
+    detail: { term: q, scope: 'global' }
+  }))
+
+  // mantém a URL sincronizada (q=...)
+  try {
+    const next = { ...route.query }
+    if (q) next.q = q
+    else delete next.q
+    router.replace({ query: next }).catch(() => {})
+  } catch (e) {
+    // ignore
+  }
+}
+</script>
+
+<style scoped>
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f5f5f5; /* Fundo base da área logada */
+}
+
+.app-header {
+  flex: 0 0 auto;
+  z-index: 100; /* Garante header acima do conteúdo */
+}
+
+.app-main {
+  flex: 1 1 auto;
+  position: relative;
+  /* Espaçamento interno se desejar, ou deixar pro view lidar */
+}
+
+/* Toast Sessão Expirada */
+.sess-toast{
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(11,35,64,.25);
+  background: rgba(11,35,64,.95);
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(0,0,0,.35);
+}
+
+.sess-toast__msg{
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.sess-toast__btn{
+  border: 1px solid rgba(255,255,255,.35);
+  background: transparent;
+  color: #fff;
+  font-weight: 900;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.sess-toast__btn:hover{
+  background: rgba(255,255,255,.12);
+}
+</style>

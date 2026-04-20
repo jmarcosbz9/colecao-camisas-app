@@ -1,0 +1,1242 @@
+<template>
+  <div v-if="open" class="fc-backdrop" @mousedown.self="close">
+    <div
+      class="fc-modal"
+      :style="{ left: pos.x + 'px', top: pos.y + 'px' }"
+      ref="modalRef"
+    >
+      <div
+        class="fc-header"
+        ref="headerRef"
+        @mousedown.prevent="onDragStart"
+        @mouseup="onDragEnd"
+      >
+        <div class="fc-head-left">
+          <img class="fc-logo" src="/icones/Fla_Fut_e_Remo.png" alt="" />
+          <h3 class="fc-title">Novo Manto</h3>
+        </div>
+        <button class="fc-close" type="button" @click="close">×</button>
+      </div>
+
+      <form class="fc-body" @submit.prevent="submitCreate" spellcheck="false">
+        <!-- 1ª linha: Modelo e Fornecedora -->
+        <div class="row two">
+          <div class="field">
+            <label class="lbl">Modelo</label>
+            <div class="dd-wrap">
+              <div
+                class="dd"
+                tabindex="0"
+                @click="toggleDd('Modelo')"
+                ref="modeloDdRef"
+                @keydown.enter.prevent="onDdEnter('Modelo', 'fornecedora')"
+                @keydown.esc.prevent="closeAllDd"
+              >
+                <span class="dd-val" :class="{ ph: !form.Modelo, filled: !!form.Modelo }">
+                  {{ form.Modelo || '— Selecione —' }}
+                </span>
+                <span :class="['dd-arr', { open: ddOpen.Modelo }]" aria-hidden="true"></span>
+              </div>
+
+              <div v-if="ddOpen.Modelo" class="dd-menu">
+                <div v-if="enums.Modelo.length === 0" class="dd-item dd-empty">
+                  (sem valores)
+                </div>
+
+                <div
+                  v-else
+                  v-for="opt in enums.Modelo"
+                  :key="'m-' + opt"
+                  class="dd-item"
+                  @click="selectEnum('Modelo', opt)"
+                >
+                  {{ opt }}
+                </div>
+              </div>
+            </div>
+            <div v-if="errs.Modelo" class="err">{{ errs.Modelo }}</div>
+          </div>
+
+          <div class="field">
+            <label class="lbl">Fornecedora</label>
+            <div class="dd-wrap">
+              <div
+                class="dd"
+                tabindex="0"
+                @click="toggleDd('Fornecedora')"
+                ref="fornDdRef"
+                @keydown.enter.prevent="onDdEnter('Fornecedora', 'manga')"
+                @keydown.esc.prevent="closeAllDd"
+              >
+                <span class="dd-val" :class="{ ph: !form.Fornecedora, filled: !!form.Fornecedora }">
+                  {{ form.Fornecedora || '— Selecione —' }}
+                </span>
+                <span :class="['dd-arr', { open: ddOpen.Fornecedora }]" aria-hidden="true"></span>
+              </div>
+
+              <div v-if="ddOpen.Fornecedora" class="dd-menu">
+                <div v-if="fornecedoras.length === 0" class="dd-item dd-empty">
+                  (sem valores)
+                </div>
+
+                <div
+                  v-else
+                  v-for="opt in fornecedoras"
+                  :key="'f-' + opt.id"
+                  class="dd-item"
+                  @click="selectFornecedor(opt)"
+                >{{ opt.nome }}</div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="forn-help-link"
+              @click.stop="openAddFornecedor"
+            >
+              Não encontrou a fornecedora?
+            </button>
+
+
+            <div v-if="errs.Fornecedora" class="err">{{ errs.Fornecedora }}</div>
+          </div>
+        </div>
+
+        <!-- 2ª linha: Manga | Período -->
+        <div class="row two">
+          <div class="field">
+            <label class="lbl">Manga</label>
+            <div class="dd-wrap">
+              <div
+                class="dd"
+                tabindex="0"
+                @click="toggleDd('Manga')"
+                ref="mangaDdRef"
+                @keydown.enter.prevent="onDdEnter('Manga', 'periodo')"
+                @keydown.esc.prevent="closeAllDd"
+              >
+                <span class="dd-val" :class="{ ph: !form.Manga, filled: !!form.Manga }">
+                  {{ form.Manga || '— Selecione —' }}
+                </span>
+                <span :class="['dd-arr', { open: ddOpen.Manga }]" aria-hidden="true"></span>
+              </div>
+
+              <div v-if="ddOpen.Manga" class="dd-menu">
+                <div v-if="enums.Manga.length === 0" class="dd-item dd-empty">
+                  (sem valores)
+                </div>
+
+                <div
+                  v-else
+                  v-for="opt in enums.Manga"
+                  :key="'ma-' + opt"
+                  class="dd-item"
+                  @click="selectEnum('Manga', opt)"
+                >
+                  {{ opt }}
+                </div>
+              </div>
+            </div>
+            <div v-if="errs.Manga" class="err">{{ errs.Manga }}</div>
+          </div>
+
+          <div class="field">
+            <label class="lbl">Período</label>
+            <input
+              ref="periodoRef"
+              class="inp inp-periodo"
+              :class="{ filled: !!form.Periodo }"
+              v-model.trim="form.Periodo"
+              type="text"
+              placeholder="Ex: 1988-1992 ou 2001"
+              @keydown.enter.prevent="focusRef('cons')"
+            />
+            <div v-if="errs.Periodo" class="err">{{ errs.Periodo }}</div>
+          </div>
+        </div>
+
+        <!-- 3ª linha: Conservação | Número | Preço -->
+        <div class="row three">
+          <div class="field">
+            <label class="lbl">Conservação</label>
+            <div class="dd-wrap">
+              <div
+                class="dd"
+                tabindex="0"
+                @click="toggleDd('Conservacao')"
+                ref="consDdRef"
+                @keydown.enter.prevent="onDdEnter('Conservacao', 'numero')"
+                @keydown.esc.prevent="closeAllDd"
+              >
+                <span class="dd-val" :class="{ ph: !form.Conservacao, filled: !!form.Conservacao }">
+                  {{ form.Conservacao || '— Selecione —' }}
+                </span>
+                <span :class="['dd-arr', { open: ddOpen.Conservacao }]" aria-hidden="true"></span>
+              </div>
+
+              <div v-if="ddOpen.Conservacao" class="dd-menu">
+                <div v-if="enums.Conservacao.length === 0" class="dd-item dd-empty">
+                  (sem valores)
+                </div>
+
+                <div
+                  v-else
+                  v-for="opt in enums.Conservacao"
+                  :key="'c-' + opt"
+                  class="dd-item"
+                  @click="selectEnum('Conservacao', opt)"
+                >
+                  {{ opt }}
+                </div>
+              </div>
+            </div>
+            <div v-if="errs.Conservacao" class="err">{{ errs.Conservacao }}</div>
+          </div>
+
+          <div class="field">
+            <label class="lbl">Número</label>
+            <input
+              ref="numeroRef"
+              class="inp inp-numero"
+              :class="{ filled: !!form.Numero }"
+              v-model.trim="form.Numero"
+              type="text"
+              @keydown.enter.prevent="focusRef('preco')"
+            />
+          </div>
+
+          <div class="field">
+            <label class="lbl">Preço</label>
+            <div class="money" :class="{ focus: moneyFocus }">
+              <span class="money-prefix">R$</span>
+              <input
+                ref="precoRef"
+                class="money-input"
+                :class="{ filled: !!precoDisplay }"
+                v-model="precoDisplay"
+                type="text"
+                inputmode="decimal"
+                placeholder="0,00"
+                @focus="moneyFocus = true"
+                @blur="onPrecoBlur"
+                @keydown.enter.prevent="onPrecoEnter"
+              />
+            </div>
+            <div v-if="errs.Preco" class="err">{{ errs.Preco }}</div>
+          </div>
+        </div>
+
+        <!-- 4ª linha: Observações -->
+        <div class="row one">
+          <div class="field">
+            <label class="lbl">Observações</label>
+            <textarea
+              id="fc-obs"
+              ref="obsRef"
+              class="ta"
+              :class="{ filled: !!form.Observacoes }"
+              v-model.trim="form.Observacoes"
+              rows="3"
+              @keydown.enter.exact.prevent="focusRef('fotos')"
+            />
+          </div>
+        </div>
+
+        <!-- 6ª linha: Fotos -->
+        <div class="row one">
+          <div class="field">
+            <label class="lbl">Fotos</label>
+
+            <div
+              class="dz"
+              :class="{ over: dzOver }"
+              @dragover.prevent="dzOver = true"
+              @dragleave.prevent="dzOver = false"
+              @drop.prevent="onDropFiles"
+              @click="openFilePicker"
+            >
+              <div v-if="photoItems.length === 0" class="dz-empty">
+                Arraste e solte aqui ou clique para selecionar
+              </div>
+
+              <div v-else class="dz-grid">
+                <div v-for="(it, idx) in photoItems" :key="'p-' + idx" class="dz-item">
+                  <img class="dz-img" :src="it.preview" alt="" />
+                  <div class="dz-name" :title="it.name">{{ it.name }}</div>
+                  <button type="button" class="dz-rm" @click.stop="removePhoto(idx)">×</button>
+                </div>
+              </div>
+
+              <input
+                ref="fileRef"
+                class="file-hidden"
+                type="file"
+                accept="image/*"
+                multiple
+                @change="onPickFiles"
+              />
+            </div>
+
+            <div v-if="errs.Fotos" class="err bottom">{{ errs.Fotos }}</div>
+          </div>
+        </div>
+
+        <!-- 7ª linha: botões -->
+        <div class="fc-footer">
+          <button type="button" class="btn ghost" @click="close" :disabled="saving">
+            Cancelar
+          </button>
+          <button type="submit" class="btn primary" :disabled="saving">
+            Salvar
+          </button>
+        </div>
+
+        <div v-if="errs._global" class="err bottom">{{ errs._global }}</div>
+      </form>
+    </div>
+  </div>
+
+  <!-- mini-modal: adicionar fornecedora -->
+  <div v-if="addForn.open" class="fc-mini-backdrop" @mousedown.self="closeAddFornecedor">
+    <div class="fc-mini" role="dialog" aria-modal="true">
+      <div class="fc-mini-title">Adicionar fornecedora</div>
+
+      <input
+        ref="addFornInput"
+        v-model.trim="addForn.nome"
+        class="fc-mini-input"
+        type="text"
+        placeholder="Nome da fornecedora"
+        @keydown.enter.prevent="saveAddFornecedor"
+        @keydown.esc.prevent="closeAddFornecedor"
+      />
+
+      <div v-if="addForn.err" class="fc-mini-err">{{ addForn.err }}</div>
+
+      <div class="fc-mini-actions">
+        <button type="button" class="btn ghost" @click="closeAddFornecedor" :disabled="addForn.saving">
+          Cancelar
+        </button>
+        <button type="button" class="btn primary" @click="saveAddFornecedor" :disabled="addForn.saving">
+          Adicionar
+        </button>
+      </div>
+    </div>
+  </div>
+
+</template>
+
+<script>
+// IMPORTANTE:
+// Use sempre o client HTTP unificado do projeto (src/lib/http.js).
+// O bug do "(sem valores)" acontece quando este arquivo chama "axios" sem importar.
+// Mantive o mesmo padrão do OutrosTimesCreate.vue: default import chamado "axios".
+import axios from "@/lib/http";
+export default {
+  name: 'FlaCreate',
+  props: {
+    open: { type: Boolean, default: false }
+  },
+  data() {
+    return {
+      pos: { x: 0, y: 0 },
+      drag: { on: false, startX: 0, startY: 0, baseX: 0, baseY: 0 },
+
+      enumsLoaded: false,
+      enums: {
+        Modelo: [],
+        Fornecedora: [],
+        Manga: [],
+        Conservacao: []
+      },
+      ddOpen: {
+        Modelo: false,
+        Fornecedora: false,
+        Manga: false,
+        Conservacao: false
+      },
+
+
+      // fornecedoras (tabela normalizada)
+      fornecedoras: [],
+      addForn: { open: false, nome: '', err: '', saving: false },
+
+      form: {
+        Modelo: '',
+        Fornecedora: '',
+        fornecedora_id: null,
+        Manga: '',
+        Conservacao: '',
+        Periodo: '',
+        Numero: '',
+        Observacoes: '',
+        Preco: '' // backend recebe decimal(10,2) como string/number; aqui vai normalizado
+      },
+
+      precoDisplay: '',
+      moneyFocus: false,
+
+      photoItems: [],
+      dzOver: false,
+
+      saving: false,
+      errs: {}
+    }
+  },
+  watch: {
+    open(v) {
+      if (v) {
+        this.onOpen()
+      } else {
+        this.closeAllDd()
+      }
+    }
+  },
+  mounted() {
+    document.addEventListener('mousedown', this.onDocMouseDown, true)
+    // Se o componente for montado já com open=true (ex.: v-if no pai), o watch não dispara.
+    // Então chamamos onOpen aqui para garantir carga de enums/fornecedoras.
+    if (this.open) {
+      this.onOpen()
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('mousedown', this.onDocMouseDown, true)
+    document.removeEventListener('mousemove', this.onDragMove)
+    document.removeEventListener('mouseup', this.onDragEnd)
+  },
+  methods: {
+    onOpen() {
+      // posiciona no centro (parecido com OutrosTimesCreate)
+      this.$nextTick(() => {
+        const w = 780
+        const h = 520
+        const x = Math.max(16, Math.round((window.innerWidth - w) / 2))
+        const y = Math.max(24, Math.round((window.innerHeight - h) / 2))
+        this.pos.x = x
+        this.pos.y = y
+      })
+
+      // carrega enums e fornecedoras na abertura (simetria com OutrosTimesCreate)
+      this.fetchEnums().catch(() => {})
+      this.fetchFornecedoras().catch(() => {})
+    },
+
+    token() {
+      try {
+        return localStorage.getItem('token') || ''
+      } catch (e) {
+        return ''
+      }
+    },
+
+    async fetchEnums() {
+      // IMPORTANTE:
+      // o endpoint atual do backend devolve:
+      //   { table: "flamengo", columns: { Modelo:[...], Fornecedora:[...], ... } }
+      // (o seu app.py está assim). Aqui a gente lê esse formato e mantém fallback.
+      this.enumsLoaded = false
+      try {
+        // 1) tentativa principal (com columns)
+        const r = await axios.get(
+          '/api/schema/enums/flamengo?columns=Modelo,Manga,Conservacao'
+        )
+        const d = r && r.data ? r.data : null
+        const cols = d && d.columns ? d.columns : null
+
+        if (cols) {
+          this.enums.Modelo = Array.isArray(cols.Modelo) ? cols.Modelo : []
+          this.enums.Manga = Array.isArray(cols.Manga) ? cols.Manga : []
+          this.enums.Conservacao = Array.isArray(cols.Conservacao) ? cols.Conservacao : []
+        }
+
+        // se por algum motivo vier vazio (ex.: filtro de "wanted" não bateu), tenta sem querystring
+        const allEmpty =
+          (!this.enums.Modelo || this.enums.Modelo.length === 0) &&          (!this.enums.Manga || this.enums.Manga.length === 0) &&
+          (!this.enums.Conservacao || this.enums.Conservacao.length === 0)
+
+        if (allEmpty) {
+          const rAll = await axios.get('/api/schema/enums/flamengo')
+          const dAll = rAll && rAll.data ? rAll.data : null
+          const colsAll = dAll && dAll.columns ? dAll.columns : null
+          if (colsAll) {
+            this.enums.Modelo = Array.isArray(colsAll.Modelo) ? colsAll.Modelo : []
+            this.enums.Manga = Array.isArray(colsAll.Manga) ? colsAll.Manga : []
+            this.enums.Conservacao = Array.isArray(colsAll.Conservacao)
+              ? colsAll.Conservacao
+              : []
+          }
+        }
+
+        this.enumsLoaded = true
+        return
+      } catch (e) {
+        // segue para fallback
+      }
+
+      // 2) fallback: alguns builds antigos usavam /filters
+      try {
+        const r2 = await axios.get('/api/flamengo/filters')
+        const f = r2 && r2.data ? r2.data : {}
+        this.enums.Modelo = Array.isArray(f.Modelo) ? f.Modelo : []
+        this.enums.Manga = Array.isArray(f.Manga) ? f.Manga : []
+        this.enums.Conservacao = Array.isArray(f.Conservacao) ? f.Conservacao : []
+      } catch (e2) {
+        // mantém vazio
+      }
+
+      this.enumsLoaded = true
+    },
+
+    
+
+    async fetchFornecedoras() {
+      try {
+        const r = await axios.get('/api/fornecedoras', { params: { contexto: 'flamengo' } });
+        const data = r && r.data ? r.data : [];
+        this.fornecedoras = Array.isArray(data) ? data : (Array.isArray(data.items) ? data.items : []);
+      } catch (e) {
+        this.fornecedoras = [];
+      }
+
+      // Se já existir texto (edição), tenta resolver o id por nome
+      if (this.form.Fornecedora && !this.form.fornecedora_id && this.fornecedoras.length) {
+        const alvo = String(this.form.Fornecedora || '').toLowerCase();
+        const hit = this.fornecedoras.find(f => String(f.nome || '').toLowerCase() === alvo);
+        if (hit) this.form.fornecedora_id = hit.id;
+      }
+    },
+
+    selectFornecedor(opt) {
+      if (!opt) return;
+      this.form.Fornecedora = opt.nome || '';
+      this.form.fornecedora_id = opt.id || null;
+      this.ddOpen.Fornecedora = false;
+      this.$nextTick(() => this.focusRef('manga'));
+    },
+
+    openAddFornecedor() {
+      this.closeAllDd();
+      this.addForn.open = true;
+      this.addForn.nome = '';
+      this.addForn.err = '';
+      this.$nextTick(() => {
+        if (this.$refs.addFornInput) this.$refs.addFornInput.focus();
+      });
+    },
+
+    closeAddFornecedor() {
+      this.addForn.open = false;
+      this.addForn.nome = '';
+      this.addForn.err = '';
+      this.addForn.saving = false;
+    },
+
+    async saveAddFornecedor() {
+      const nome = (this.addForn.nome || '').trim();
+      if (!nome) {
+        this.addForn.err = 'Informe um nome.';
+        return;
+      }
+
+      this.addForn.saving = true;
+      this.addForn.err = '';
+
+      try {
+        const res = await axios.post('/api/fornecedoras', { nome, contexto: 'flamengo' });
+        const created = res && res.data ? res.data : null;
+
+        await this.fetchFornecedoras();
+
+        // Seleciona a recém-criada
+        let pick = null;
+        if (created && created.id) pick = this.fornecedoras.find(f => f.id === created.id) || null;
+        if (!pick) {
+          const alvo = nome.toLowerCase();
+          pick = this.fornecedoras.find(f => String(f.nome || '').toLowerCase() === alvo) || null;
+        }
+        if (pick) this.selectFornecedor(pick);
+
+        this.closeAddFornecedor();
+      } catch (e) {
+        this.addForn.err = 'Erro ao adicionar fornecedora.';
+      } finally {
+        this.addForn.saving = false;
+      }
+    },
+
+    onDdEnter(field, next) {
+      // Se já existe valor selecionado e o menu está fechado, Enter avança foco.
+      // Se ainda não existe valor, Enter abre o dropdown.
+      if (this.ddOpen[field]) {
+        // menu aberto: fecha; se já há valor, avança
+        this.ddOpen[field] = false
+        if (this.form[field]) this.focusRef(next)
+        return
+      }
+      if (this.form[field]) {
+        this.focusRef(next)
+        return
+      }
+      this.toggleDd(field)
+    },
+toggleDd(field) {
+      // fecha outros
+      for (const k in this.ddOpen) {
+        if (k !== field) this.ddOpen[k] = false
+      }
+      this.ddOpen[field] = !this.ddOpen[field]
+
+      // Fornecedoras vêm da tabela normalizada; garante carga antes de abrir o menu
+      if (field === 'Fornecedora' && this.ddOpen[field] && (!this.fornecedoras || this.fornecedoras.length === 0)) {
+        this.fetchFornecedoras().catch(() => {})
+      }
+
+      // garantia: se abriu e ainda não carregou enums, tenta carregar
+      if (this.ddOpen[field] && !this.enumsLoaded) {
+        this.fetchEnums().catch(() => {})
+      }
+    },
+
+    closeAllDd() {
+      for (const k in this.ddOpen) this.ddOpen[k] = false
+    },
+
+    selectEnum(field, opt) {
+      this.form[field] = opt
+      this.closeAllDd()
+
+      // foco “natural”
+      if (field === 'Modelo') this.focusRef('fornecedora')
+      if (field === 'Fornecedora') this.focusRef('manga')
+      if (field === 'Manga') this.focusRef('periodo')
+      if (field === 'Conservacao') this.focusRef('numero')
+    },
+
+    onDocMouseDown(e) {
+      // (a/b) Fecha dropdown ao clicar fora do menu.
+      // - Clique fora do modal: fecha dropdown (o backdrop pode fechar o modal via @mousedown.self)
+      // - Clique dentro do modal, mas fora de qualquer dropdown: fecha dropdown
+      // - Clique no próprio dropdown (campo/"seta"): mantém o toggle via toggleDd()
+      if (!this.open) return
+      const root = this.$refs.modalRef
+      if (!root) return
+      if (!root.contains(e.target)) {
+        this.closeAllDd()
+        return
+      }
+
+      // dentro do modal
+      if (e.target && e.target.closest) {
+        if (!e.target.closest('.dd-wrap')) this.closeAllDd()
+        return
+      }
+
+      // fallback antigo (sem closest)
+      let n = e.target
+      let insideDd = false
+      while (n && n !== root) {
+        if (n.className && String(n.className).indexOf('dd-wrap') >= 0) {
+          insideDd = true
+          break
+        }
+        n = n.parentNode
+      }
+      if (!insideDd) this.closeAllDd()
+    },
+
+    // Drag modal (mantém o que já estava OK)
+    onDragStart(e) {
+      this.drag.on = true
+	  // cursor “closed hand”
+	  if (this.$refs.headerRef) this.$refs.headerRef.classList.add('grabbing')
+      	  this.drag.startX = e.clientX
+      this.drag.startY = e.clientY
+      this.drag.baseX = this.pos.x
+      this.drag.baseY = this.pos.y
+      document.addEventListener('mousemove', this.onDragMove)
+      document.addEventListener('mouseup', this.onDragEnd)
+    },
+    onDragMove(e) {
+      if (!this.drag.on) return
+      const dx = e.clientX - this.drag.startX
+      const dy = e.clientY - this.drag.startY
+      this.pos.x = this.drag.baseX + dx
+      this.pos.y = this.drag.baseY + dy
+    },
+    onDragEnd() {
+      this.drag.on = false
+	  // volta para “open hand”
+	  if (this.$refs.headerRef) this.$refs.headerRef.classList.remove('grabbing')
+      document.removeEventListener('mousemove', this.onDragMove)
+      document.removeEventListener('mouseup', this.onDragEnd)
+    },
+
+    focusRef(which) {
+      this.$nextTick(() => {
+        if (which === 'modelo' && this.$refs.modeloDdRef) return this.$refs.modeloDdRef.focus()
+        if (which === 'fornecedora' && this.$refs.fornDdRef) return this.$refs.fornDdRef.focus()
+        if (which === 'manga' && this.$refs.mangaDdRef) return this.$refs.mangaDdRef.focus()
+        if (which === 'periodo' && this.$refs.periodoRef) return this.$refs.periodoRef.focus()
+        if (which === 'cons' && this.$refs.consDdRef) return this.$refs.consDdRef.focus()
+        if (which === 'numero' && this.$refs.numeroRef) return this.$refs.numeroRef.focus()
+        if (which === 'preco' && this.$refs.precoRef) return this.$refs.precoRef.focus()
+        if (which === 'obs' && this.$refs.obsRef) return this.$refs.obsRef.focus()
+        if (which === 'fotos' && this.$refs.fileRef) return this.$refs.fileRef.focus()
+      })
+    },
+
+    // Preço (mesmo padrão “robusto” do OutrosTimesCreate)
+    normalizePrecoFromDisplay(s) {
+      if (s == null) return '0.00'
+      let x = String(s).trim()
+      if (!x) return '0.00'
+      // remove R$, espaços e pontos de milhar; troca vírgula por ponto
+      x = x.replace(/[R$\s]/g, '')
+      x = x.replace(/\./g, '')
+      x = x.replace(',', '.')
+      const n = parseFloat(x)
+      if (isNaN(n)) return '0.00'
+      return n.toFixed(2)
+    },
+    formatPrecoToBR(v) {
+      const n = parseFloat(v)
+      if (isNaN(n)) return '0,00'
+      return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
+    onPrecoBlur() {
+      this.moneyFocus = false
+      const normalized = this.normalizePrecoFromDisplay(this.precoDisplay)
+      this.form.Preco = normalized
+      this.precoDisplay = this.formatPrecoToBR(normalized)
+    },
+    onPrecoEnter() {
+      this.onPrecoBlur()
+      this.focusRef('obs')
+    },
+
+    // Fotos
+    openFilePicker() {
+      if (this.$refs.fileRef) this.$refs.fileRef.click()
+    },
+    onPickFiles(e) {
+      const files = e.target.files ? Array.from(e.target.files) : []
+      this.addFiles(files)
+      e.target.value = ''
+    },
+    onDropFiles(e) {
+      this.dzOver = false
+      const files = e.dataTransfer && e.dataTransfer.files ? Array.from(e.dataTransfer.files) : []
+      this.addFiles(files)
+    },
+    addFiles(files) {
+      const onlyImg = files.filter(f => f && f.type && f.type.indexOf('image/') === 0)
+      for (let i = 0; i < onlyImg.length; i++) {
+        if (this.photoItems.length >= 6) break
+        const f = onlyImg[i]
+        const preview = URL.createObjectURL(f)
+        this.photoItems.push({ file: f, name: f.name, preview })
+      }
+      if (this.photoItems.length > 6) this.photoItems = this.photoItems.slice(0, 6)
+    },
+    removePhoto(idx) {
+      try {
+        const it = this.photoItems[idx]
+        if (it && it.preview) URL.revokeObjectURL(it.preview)
+      } catch (e) {}
+      this.photoItems.splice(idx, 1)
+    },
+
+    // Erros
+    resetErrors() {
+      this.errs = {}
+    },
+    setErr(k, msg) {
+      this.$set ? this.$set(this.errs, k, msg) : (this.errs[k] = msg)
+    },
+
+    validate() {
+      this.resetErrors()
+
+      if (!this.form.Modelo) this.setErr('Modelo', 'Selecione um valor.')
+      if (!this.form.Fornecedora) this.setErr('Fornecedora', 'Selecione um valor.')
+      if (!this.form.Manga) this.setErr('Manga', 'Selecione um valor.')
+      if (!this.form.Conservacao) this.setErr('Conservacao', 'Selecione um valor.')
+      if (!this.form.Periodo) this.setErr('Periodo', 'Preencha o período.')
+
+      // preço: sempre normaliza
+      if (!this.precoDisplay && !this.form.Preco) {
+        this.setErr('Preco', 'Preencha o preço.')
+      }
+
+      // se tem qualquer erro, falha
+      for (const k in this.errs) return false
+      return true
+    },
+
+    async submitCreate() {
+      if (this.saving) return
+      if (!this.validate()) {
+        this.setErr('_global', 'Erro ao salvar. Verifique os campos.')
+        return
+      }
+
+      this.saving = true
+      try {
+        // garante preço normalizado
+        const normalized = this.normalizePrecoFromDisplay(this.precoDisplay || this.form.Preco)
+        this.form.Preco = normalized
+        this.precoDisplay = this.formatPrecoToBR(normalized)
+
+        const payload = {
+          Modelo: this.form.Modelo,
+          Fornecedora: this.form.Fornecedora,
+        fornecedora_id: this.form.fornecedora_id,
+          Manga: this.form.Manga,
+          Conservacao: this.form.Conservacao,
+          Periodo: this.form.Periodo,
+          Numero: this.form.Numero ? this.form.Numero : null,
+          Preco: this.form.Preco,
+          Observacoes: this.form.Observacoes ? this.form.Observacoes : null
+        }
+
+        const t = this.token()
+        const headers = {}
+        if (t) headers.Authorization = 'Bearer ' + t
+
+        if (!this.photoItems || this.photoItems.length === 0) {
+          headers['Content-Type'] = 'application/json'
+          const res = await fetch('/api/flamengo', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+          })
+          if (!res.ok) throw new Error('create_failed')
+        } else {
+          const fd = new FormData()
+          fd.append('payload', JSON.stringify(payload))
+          for (let i = 0; i < this.photoItems.length; i++) {
+            fd.append('fotos', this.photoItems[i].file)
+          }
+
+          const res = await fetch('/api/flamengo', {
+            method: 'POST',
+            headers, // só Authorization (NÃO setar Content-Type)
+            body: fd
+          })
+          if (!res.ok) throw new Error('create_failed')
+        }
+
+        this.$emit('success')
+        this.close()
+      } catch (e) {
+        this.setErr('_global', 'Erro ao salvar. Verifique os campos.')
+      } finally {
+        this.saving = false
+      }
+    },
+
+    close() {
+      this.closeAllDd()
+      this.$emit('close')
+    }
+  }
+}
+</script>
+
+<style scoped>
+/* Tokens de cor compartilhados (modal principal e mini-modal de fornecedora) */
+.fc-backdrop,
+.fc-mini-backdrop{
+  --fc-red: #e0002a;                 /* vermelho Flamengo */
+  --fc-red-header: #ff2f00;          /* vermelho mais claro (header) */
+  --fc-hint: rgba(255,255,255,.75);  /* cor de hint/placeholders em campos escuros */
+}
+
+/* Backdrop do modal principal (overlay escuro atrás do Create) */
+.fc-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  z-index: 4000;
+}
+
+/* Janela do modal principal (Create Flamengo) */
+.fc-modal{
+  position: fixed;
+  width: 780px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 80px);
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 40px rgba(0,0,0,.65);
+  overflow: hidden;
+}
+
+/* Cabeçalho do modal principal (gradiente + área arrastável) */
+.fc-header{
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  padding: 12px 16px;
+  background: linear-gradient(to bottom, #000 0%, #000 45%, var(--fc-red-header) 100%);
+  border-bottom: 1px solid #000;
+  cursor: grab;
+  user-select: none;
+}
+
+/* Cursor ao arrastar o modal */
+.fc-header:active,
+.fc-header.grabbing{
+  cursor: grabbing;
+}
+
+/* Área esquerda do cabeçalho (logo + título) */
+.fc-head-left{
+  display:flex;
+  align-items:center;
+  gap: 15px;
+  padding-left: 6px;
+}
+
+/* Logo do Flamengo */
+.fc-logo{
+  width: auto;
+  height: 60px;
+  object-fit: contain;
+  display:block;
+}
+
+/* Título do modal */
+.fc-title{
+  margin:0;
+  font-size: 22px;
+  color:#fff;
+  font-weight: 900;
+  letter-spacing: .2px;
+}
+
+/* Botão fechar (X) */
+.fc-close{
+  border:none;
+  background:transparent;
+  color:#fff;
+  font-size: 22px;
+  cursor:pointer;
+}
+
+/* Corpo do modal (área com scroll do form) */
+.fc-body{
+  padding: 14px 16px 10px;
+  overflow-y:auto;
+  background:#fff;
+}
+
+/* Linhas do form em grid */
+.row{ display:grid; gap: 12px; margin-bottom: 12px; }
+.row.one{ grid-template-columns: 1fr; }
+.row.two{ grid-template-columns: 1fr 1fr; }
+.row.three{ grid-template-columns: 1fr 120px 1fr; }
+
+/* Responsividade das linhas com 3 colunas */
+@media (max-width: 860px){
+  .row.three{ grid-template-columns: 1fr 1fr; }
+  .row.three .field:nth-child(3){ grid-column: 1 / -1; }
+}
+@media (max-width: 640px){
+  .row.two{ grid-template-columns: 1fr; }
+  .row.three{ grid-template-columns: 1fr; }
+}
+
+/* Label dos campos */
+.lbl{
+  display:block;
+  font-size: 14px;
+  color: #111;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+/* Inputs padrão (fundo escuro, texto branco) */
+.inp{
+  width: 100%;
+  background: #1b1b1b;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,.35);
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #fff;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Focus do input */
+.inp:focus{
+  border-color: var(--fc-red);
+  box-shadow: 0 0 0 3px rgba(176,0,32,.22);
+}
+
+/* Input preenchido (fonte ligeiramente maior) */
+.inp.filled{ font-size: 15px; }
+
+/* Campo Período (texto vermelho e negrito) */
+.inp-periodo{ color: var(--fc-red); font-weight: 900; }
+
+/* Campo Número preenchido (texto vermelho e negrito) */
+.inp-numero.filled{ color: var(--fc-red); font-weight: 900; font-size: 15px; }
+
+/* Campo Preço preenchido (texto vermelho e negrito) */
+.money-input.filled{ color: var(--fc-red); font-weight: 900; font-size: 15px; }
+
+/* Textarea Observações (fundo branco) */
+.ta{
+  width: 100%;
+  background: #fff;
+  color: #111;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,.18);
+  padding: 8px 10px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Focus do textarea */
+.ta:focus{
+  border-color: var(--fc-red);
+  box-shadow: 0 0 0 3px rgba(176,0,32,.12);
+}
+
+/* Textarea preenchido (fonte ligeiramente maior) */
+.ta.filled{ font-size: 15px; }
+
+/* Placeholders/hints em campos escuros */
+.inp::placeholder,
+.ta::placeholder,
+.money-input::placeholder{
+  color: var(--fc-hint);
+  font-weight: 400;
+  opacity: 1;
+}
+
+/* Wrapper do dropdown (para posicionar o menu) */
+.dd-wrap{ position: relative; }
+
+/* Dropdown (caixa clicável) */
+.dd{
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,.35);
+  background: #1b1b1b;
+  font-size: 14px;
+  color:#fff;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+/* Focus do dropdown */
+.dd:focus{ border-color:var(--fc-red); box-shadow: 0 0 0 3px rgba(176,0,32,.22); outline: none; }
+
+/* Valor selecionado do dropdown (vermelho negrito) */
+.dd-val{ color: var(--fc-red); font-weight: 900; }
+
+/* Placeholder do dropdown (— Selecione —) */
+.dd-val.ph{ color: var(--fc-hint); font-weight: 400; font-size: 14px; }
+
+/* Valor selecionado com fonte ligeiramente maior */
+.dd-val.filled{ font-size: 15px; }
+
+/* Seta do dropdown + animação */
+.dd-arr{
+  position: relative;
+  display: inline-flex;          /* de inline-block → inline-flex (centraliza o desenho) */
+  align-items: center;
+  justify-content: center;
+  width: 22px;                   /* ligeiramente maior pra caber a box */
+  height: 22px;
+  flex: 0 0 22px;
+  color: var(--fc-red);          /* mantém vermelho */
+  transform: rotate(0deg);       /* fechado = para baixo */
+  transition: transform 520ms cubic-bezier(.2,.8,.2,1), background-color 140ms ease, box-shadow 140ms ease;
+  border-radius: 6px;            /* cantos arredondados da box */
+}
+
+/* Box no hover do caret */
+.dd-arr:hover{
+  background-color: rgba(70, 70, 70, 0.75);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);
+}
+
+/* hastes */
+.dd-arr::before,
+.dd-arr::after{
+  content: '';
+  position: absolute;
+  top: 50%;
+  margin-top: 3px;
+  width: 10px;
+  height: 3px;
+  background: currentColor;
+  border-radius: 2px;
+}
+
+/* fechado: ˅ */
+.dd-arr::before{
+  left: 50%;
+  transform-origin: 100% 50%;
+  transform: translate(-100%, -50%) rotate(45deg);
+}
+.dd-arr::after{
+  left: 50%;
+  transform-origin: 0% 50%;
+  transform: translate(0, -50%) rotate(-45deg);
+}
+
+/* aberto: ˄ */
+.dd-arr.open{
+  transform: rotate(-180deg);   /* anti-horário */
+}
+
+@media (prefers-reduced-motion: reduce){
+  .dd-arr{ transition: none; }
+}
+
+/* Menu do dropdown */
+.dd-menu{
+  position:absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 100%;
+  max-height: 220px;
+  overflow-y:auto;
+  border-radius: 10px;
+  border: 1px solid #000;
+  background: #000;
+  z-index: 50;
+  padding: 6px 0;
+}
+
+/* Itens do menu do dropdown */
+.dd-item{ padding: 8px 12px; font-size: 14px; color: var(--fc-red); font-weight: 900; cursor:pointer; }
+
+/* Hover do item do dropdown (faixa vermelha com texto preto) */
+.dd-item:hover{ background: var(--fc-red); color: #000; }
+
+/* Item de “sem valores” no dropdown */
+.dd-item.dd-empty{ color: rgba(255,255,255,.55); font-weight: 700; cursor: default; }
+.dd-item.dd-empty:hover{ background: transparent; color: rgba(255,255,255,.55); }
+
+/* Wrapper do campo de preço (prefixo + input) */
+.money{ display:flex; align-items:center; background:#1b1b1b; border-radius: 8px; border: 1px solid rgba(0,0,0,.35); box-sizing: border-box; }
+
+/* Focus visual do wrapper do preço */
+.money.focus{ border-color:var(--fc-red); box-shadow: 0 0 0 3px rgba(176,0,32,.22); }
+
+/* Prefixo R$ */
+.money-prefix{ padding: 0 10px; font-size: 15px; font-weight: 900; color: var(--fc-red); }
+
+/* Input do preço */
+.money-input{ border:none; outline:none; background:transparent; padding: 8px 10px 8px 0; margin:0; width:100%; color:#fff; font-size: 14px; }
+.money-input.filled{ font-size: 15px; }
+
+/* Dropzone de fotos */
+.dz{ margin-top: 2px; padding: 14px 12px; border-radius: 12px; border: 2px dashed var(--fc-red); background: rgba(176,0,32,.05); cursor: pointer; box-sizing: border-box; }
+
+/* Dropzone quando arquivo está sobre a área */
+.dz.over{ border-color:#7a0016; background: rgba(176,0,32,.10); }
+
+/* Texto da dropzone vazia */
+.dz-empty{ text-align:center; font-size: 13px; color:#111; font-weight: 800; }
+
+/* Grid de previews na dropzone */
+.dz-grid{ display:flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+
+/* Item de preview (thumb + nome + remover) */
+.dz-item{ width: 120px; display:flex; flex-direction: column; gap: 6px; position: relative; }
+
+/* Thumbnail da foto */
+.dz-img{ width: 120px; height: 90px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(0,0,0,.20); background:#fff; }
+
+/* Nome do arquivo da foto */
+.dz-name{ font-size: 12px; color:#111; line-height: 1.2; max-width: 120px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Botão remover foto (×) */
+.dz-rm{ position:absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 999px; border: 1px solid rgba(0,0,0,.15); background:#fff; color:#111; font-weight: 900; cursor:pointer; }
+
+/* Input file invisível (controlado via dropzone) */
+.file-hidden{ display:none; }
+
+/* Rodapé do modal (ações Cancelar/Salvar) */
+.fc-footer{ display:flex; justify-content: flex-end; gap: 10px; padding: 10px 0 6px; border-top: 1px solid #eee; margin-top: 4px; }
+
+/* Botão base */
+.btn{ border-radius: 10px; padding: 8px 16px; font-size: 14px; font-weight: 900; border: 1px solid transparent; cursor: pointer; }
+
+/* Botão compacto (usado no mini-modal) */
+.btn.sm{ padding: 6px 12px; font-size: 13px; }
+
+/* Botão neutro */
+.btn.ghost{ background:#e5e7eb; color:#111; border-color:#d1d5db; }
+
+/* Botão primário (Salvar / Adicionar) */
+.btn.primary{ background:#000; border-color:#000; color: var(--fc-red); font-weight: 900; }
+
+/* Estado desabilitado */
+.btn:disabled{ opacity:.7; cursor:not-allowed; }
+
+/* Mensagens de erro */
+.err{ margin-top: 6px; color: #d32f2f; font-weight: 900; font-size: 12px; }
+.err.bottom{ margin-top: 10px; }
+
+/* Link “Não encontrou a fornecedora?” (abaixo do dropdown, canto inferior direito) */
+.forn-help-link{
+  display:block;
+  width: 100%;
+  text-align: right;
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0b2340;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1.1;
+}
+.forn-help-link:hover{ color:#000; opacity: .85; }
+.forn-help-link:focus{ outline: 2px solid rgba(11,35,64,0.35); outline-offset: 2px; border-radius: 6px; }
+
+/* Backdrop do mini-modal de fornecedora */
+.fc-mini-backdrop{ position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999; display:flex; align-items:center; justify-content:center; padding: 16px; }
+
+/* Card do mini-modal (mesma identidade do OutrosTimesCreate) */
+.fc-mini{ width: 360px; max-width: calc(100% - 24px); border-radius: 12px; border: 1px solid rgba(11,35,64,.25); background: #fff; box-shadow: 0 18px 40px rgba(6,26,64,.45); padding: 12px 12px 10px; box-sizing: border-box; }
+
+/* Título do mini-modal */
+.fc-mini-title{ font-size: 14px; font-weight: 900; color:#0b2340; margin-bottom: 8px; }
+
+/* Input do mini-modal */
+.fc-mini-input{ width: 100%; border-radius: 10px; border: 1px solid #c5cbe8; padding: 8px 10px; font-size: 14px; box-sizing: border-box; outline: none; }
+
+/* Focus do input do mini-modal */
+.fc-mini-input:focus{ border-color:#0b2340; box-shadow: 0 0 0 3px rgba(11,35,64,.10); }
+
+/* Erro do mini-modal */
+.fc-mini-err{ margin-top: 8px; color: #d32f2f; font-size: 13px; font-weight: 800; }
+
+/* Ações do mini-modal */
+.fc-mini-actions{ display:flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+/* Botão Adicionar do mini-modal (texto vermelho visível no fundo preto) */
+.fc-mini-actions .btn.primary{ color: #ff0000; font-weight: 900; }
+</style>
+

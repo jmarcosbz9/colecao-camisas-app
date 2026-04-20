@@ -1,0 +1,56 @@
+/**
+ * src/utils/auth.js
+ * Gerenciamento centralizado de Token e Usuário no LocalStorage
+ */
+
+const TOKEN_KEY = 'token'
+const USER_KEY = 'user'
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token)
+  }
+}
+
+export function removeToken() {
+  localStorage.removeItem(TOKEN_KEY)
+}
+
+export function getUser() {
+  const u = localStorage.getItem(USER_KEY)
+  try {
+    return u ? JSON.parse(u) : null
+  } catch (e) {
+    return null
+  }
+}
+
+export function setUser(user) {
+  if (user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
+    // Notifica a aplicação que o usuário mudou (Login)
+    window.dispatchEvent(new CustomEvent('user-updated', { detail: user }))
+  }
+}
+
+export function removeUser() {
+  localStorage.removeItem(USER_KEY)
+}
+
+/**
+ * Limpa tudo (Logoff) e notifica UI
+ */
+export function clearAuth() {
+  removeToken()
+  removeUser()
+  // Notifica aplicação que usuário saiu (detail: null)
+  window.dispatchEvent(new CustomEvent('user-updated', { detail: null }))
+}
+
+export function isAuthenticated() {
+  return !!getToken()
+}

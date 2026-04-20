@@ -1,0 +1,140 @@
+<template>
+  <!-- Se não tem fotos: não renderiza nada -->
+  <div class="thumbs" v-if="thumbItems.length">
+    <img
+      v-for="(t, idx) in thumbItems"
+      :key="t.key || idx"
+      class="thumb"
+      :src="t.src"
+      alt=""
+      loading="lazy"
+      :title="t.title"
+      @click="onThumbClick(idx)"
+      @error="onImgError"
+    />
+  </div>
+</template>
+
+<script>
+import { FILE_BASE } from '@/lib/base'
+
+export default {
+  name: 'Thumbs',
+
+  // Evento para o pai abrir um viewer (grid, modal etc.)
+  // payload:
+  //  { index: Number, items: [{ thumbSrc, fullSrc, raw }...] }
+  emits: ['open'],
+
+  props: {
+    // pode vir array já parseado OU string JSON do MySQL
+    files: { type: [Array, String, Object, null], default: null },
+    fotos: { type: [Array, String, Object, null], default: null }, // compat
+  },
+
+  computed: {
+    normalizedFiles() {
+      const raw = this.files != null ? this.files : this.fotos
+      return this.parseFotos(raw)
+    },
+
+    thumbItems() {
+      const base = this.normBase(FILE_BASE || '/uploads')
+
+      const out = []
+      for (let i = 0; i < this.normalizedFiles.length; i++) {
+        const f = this.normalizedFiles[i] || {}
+        const thumbPath = f.thumbnail || f.thumb || f.thumb_name || ''
+        const fullPath = f.name || f.file || f.path || f.original || thumbPath
+
+        const src = this.makeUrl(base, thumbPath || fullPath)
+        const fullSrc = this.makeUrl(base, fullPath || thumbPath)
+
+        if (!src) continue
+        out.push({
+          key: f.thumbnail || f.thumb || f.name || i,
+          src: src,
+          fullSrc: fullSrc,
+          raw: f,
+          title: 'Clique para ampliar',
+        })
+      }
+      return out
+    },
+  },
+
+  methods: {
+    onThumbClick(idx) {
+      const items = (this.thumbItems || []).map((t) => ({
+        thumbSrc: t.src,
+        fullSrc: t.fullSrc || t.src,
+        raw: t.raw,
+      }))
+
+      this.$emit('open', {
+        index: Number(idx) || 0,
+        items: items,
+      })
+    },
+
+    parseFotos(raw) {
+      if (!raw) return []
+      if (Array.isArray(raw)) return raw
+      if (typeof raw === 'object') return [raw]
+
+      if (typeof raw === 'string') {
+        let s = raw.trim()
+        if ((s[0] === "'" && s[s.length - 1] === "'") || (s[0] === '"' && s[s.length - 1] === '"')) {
+          s = s.slice(1, -1)
+        }
+        try {
+          const parsed = JSON.parse(s)
+          return Array.isArray(parsed) ? parsed : (parsed ? [parsed] : [])
+        } catch (e) {
+          return []
+        }
+      }
+      return []
+    },
+
+    normBase(b) {
+      const s = String(b || '').trim()
+      if (!s) return ''
+      return s.replace(/\/+$/, '')
+    },
+
+    makeUrl(base, path) {
+      const p = String(path || '').trim()
+      if (!p) return ''
+      if (/^https?:\/\//i.test(p)) return p
+      const clean = p.replace(/^\/+/, '')
+      if (!base) return '/' + clean
+      return base + '/' + clean
+    },
+
+    onImgError(ev) {
+      // esconde imagem quebrada (sem “Thumb”/ícone quebrado)
+      const img = ev && ev.target
+      if (img && img.style) img.style.display = 'none'
+    },
+  },
+}
+</script>
+
+<style scoped>
+.thumbs {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.thumb {
+  height: 64px;
+  aspect-ratio: 118 / 180;
+  width: auto;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+  cursor: pointer;
+}
+</style>

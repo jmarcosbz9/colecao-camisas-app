@@ -1,0 +1,22 @@
+Ordenação dos campos desejada:
+1ª Linha → Somente Equipe
+2ª linha → Fornecedora e Manga
+3ª linha → Conservação e Período
+4ª linha → Número e Preço
+5ª linha → Observações
+6ª linha → Fotos drag & drop box
+7ª linha → Botões Cancelar e salvar
+
+Aperfeiçoamentos de Layout e UX:
+— a janela (box) do form de create deve possuir os cantos arrendondados; 
+— Aumentar o tamanho das letras das legendas de cada campo e mudá-las de preta para azul-escuro;
+— A responsividade drag & drop que move a janela do form — apenas via drag e drop dentro do cabeçalho e transição para hands nele estão ok —; manter; 
+— A cor do background do header (cabeçalho) do formulário e a cor das letras do título estão ok; apenas aumentar o tamanho delas;
+— A cor do background do corpo do formulário deve permanecer branca, mas os campos devem ser azul-escuro, assim como os menus dropdown já são azul-escuro;
+— Todos os hints internos dos campos enum — cujo preenchimento é acionado por clique dentro do campo que abre o menu dropdown — devem ser: "— Selecione —" (sem as aspas); 
+— Atualmente, após o clique que ativa o preenchimento no campo Preco, a box ativa está sangrando à direita com relação a mesma box quando inativa. Objetivo: igualá-las (alinha-lhas) mantendo R$ como hint inside box;
+— Flexibilidade do preenchimento do campo Preco: caso o usuário digite um valor inteiro; exemplo: 3425 e teclar enter, tal valor deve ser completado com duas casas decimais no valor 00 e apresentado como R$ 3.425,00 a ele. Obs.: no banco de dados camisas → tabela outros_times o campo Preco é decimal(10,2);
+— Atualmente, se o usuário clicar em mais de uma dropdown box de campos tipo enum e não selecionar algum valor para alguma delas, todos ficam abertas no formulário até o usuário selecionar/preencher algum campo com algum valor. Responsividade desejada: caso o usuário abra algum menu dropdown e não selecione valor algum, porém clicar fora do menu, o dropdown menu deverá ser fechado;
+— Atualmente, em campos não enum tais como Equipe, Preco, Numero, caso o usuário preencha o conteúdo desejado e tecle enter para confirmar o preenchimento, todo o form fecha sem criar o registro. Comportamento desejado: ao teclar enter após preencher tais campos deve-se preservar o conteúdo e dar continuidade ao preenchimento dos outros campos;
+— UX drag & drop + Windows Style WYSIWYG para seleção das fotos está funcional. Porém, ao carregar uma foto é apresentada o nome dela e, mesmo assim, abaixo da área drag & drop. Responsividade desejada: deve ser apresentada a thumb dela dentro da área drag & drop e abaixo da thumb, aí, sim, o nome do arquivo. As thumbs dever ir se alinhando horizontalmente no campo drag & drop à medida que o usuário vai "uploadando" fotos. Obs.: o mecanismo de envio → frontend → backend → armazenagem física das fotos, criação das suas thumbs → preenchimento JSON do campo fotos na tabela outros_times estão ok.
+

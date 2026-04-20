@@ -1,0 +1,457 @@
+<template>
+  <!-- HEADER raiz -->
+  <header class="cm-header">
+    <!-- Logo (ficar à esquerda) -->
+    <!-- Logo (ficar à esquerda) -->
+    <router-link class="cm-brand" :to="{ name: 'flamengo' }" title="Home">
+      <img class="cm-brand-icon" src="/icones/logo.png" alt="Logo do Projeto" />
+    </router-link>
+
+    <!-- Botões de contexto (Flamengo / Outros) -->
+    <div class="cm-ctx-wrap">
+      <router-link class="cm-ctx" :to="{ name: 'flamengo' }" title="O Manto Sagrado" active-class="active">
+        <img class="cm-ctx-icon" src="/icones/CRF.png" alt="CRF" />
+        <span>O Manto Sagrado</span>
+      </router-link>
+
+      <router-link class="cm-ctx" :to="{ name: 'outros_times' }" title="Outros Times" active-class="active">
+        <img class="cm-ctx-icon" src="/icones/camiseta_pequena.png" alt="Outros" />
+        <span>Outros Times</span>
+      </router-link>
+    </div>
+
+    <!-- Caixa de busca -->
+    <div class="cm-search">
+      <input
+        class="cm-search-input"
+        type="text"
+        placeholder="Buscar"
+        aria-label="Buscar"
+        v-model="searchTerm"
+        @input="onSearchInput"
+      />
+      <!-- Ícone da lupa (caminho confirmado: procurar.png) -->
+      <img class="cm-search-icon" src="/icones/procurar.png" alt="" />
+      <!-- Botão de limpar busca -->
+      <button
+        v-if="searchTerm"
+        class="cm-search-clear"
+        @click="clearSearch"
+        title="Limpar busca"
+      >
+        ×
+      </button>
+    </div>
+
+    <!-- Grupo dos ícones (Ações / Usuário + nome) -->
+    <div class="cm-icons">
+      <!-- Ícone Ações -->
+      <button
+        class="cm-icon-btn cm-gear"
+        @mouseenter="openIconMenu('actions', $event)"
+        @mouseleave="scheduleCloseIcon('actions')"
+        aria-label="Ações"
+      >
+        <img src="/icones/engrenagem.png" alt="Ações" />
+      </button>
+
+      <!-- Dropdown Ações -->
+      <ul
+        v-if="menus.actions.visible"
+        class="cm-dropdown cm-actions"
+        :class="themeClass"
+        :style="{ ...menus.actions.style, minWidth: menuWidth + 'px', width: menuWidth + 'px' }"
+        @mouseenter="hovering.icon.actions = true"
+        @mouseleave="leaveIconMenu('actions')"
+      >
+        <li @click="$emit('action-advanced-search')">Busca Avançada</li>
+        <li @click="$emit('action-export')">Exportar</li>
+        <li @click="$emit('action-import')">Importar</li>
+        <li @click="$emit('action-save')">Salvar</li>
+      </ul>
+
+      <!-- Ícone Usuário + nome -->
+      <div class="cm-user-wrap">
+        <button
+          class="cm-icon-btn cm-user"
+          @mouseenter="openIconMenu('user', $event)"
+          @mouseleave="scheduleCloseIcon('user')"
+          aria-label="Usuário"
+        >
+          <img src="/icones/usuario.png" alt="Usuário" />
+        </button>
+        <span class="cm-user-label">{{ userName }}</span>
+
+        <!-- Dropdown Usuário -->
+        <ul
+          v-if="menus.user.visible"
+          class="cm-dropdown cm-user-dd"
+          :class="themeClass"
+          :style="{ ...menus.user.style, minWidth: menuWidth + 'px', width: menuWidth + 'px' }"
+          @mouseenter="hovering.icon.user = true"
+          @mouseleave="leaveIconMenu('user')"
+        >
+          <li @click="$emit('user-edit')">Editar Infos</li>
+          <li @click="$emit('user-switch')">Trocar Usuário</li>
+          <li @click="$emit('user-logout')">Logoff</li>
+        </ul>
+      </div>
+    </div>
+  </header>
+</template>
+
+<script>
+export default {
+  name: 'Header',
+
+  // Tema e nome do usuário (futuro: virá do backend)
+  props: {
+    context: { type: String, default: 'flamengo' }, // 'flamengo' | 'outros'
+    userName: { type: String, default: '' },
+
+    // v-model do campo de busca do Header (controle externo pelo AppLayout)
+    modelValue: { type: String, default: '' }
+  },
+
+  emits: [
+    'search-change',
+    'update:modelValue',
+    'action-advanced-search',
+    'action-export',
+    'action-import',
+    'action-save',
+    'user-edit',
+    'user-switch',
+    'user-logout'
+  ],
+
+  data () {
+    return {
+      // Largura dos dropdowns (px)
+      menuWidth: 140,
+
+      // Offsets finos do posicionamento do dropdown (px)
+      iconMenuOffsetX: 8,   // px, + empurra à direita, - puxa à esquerda
+      iconMenuOffsetY: -25,   // vertical: px, + desce, - sobrepõe
+
+      // Estados dos menus dos ícones
+      menus: {
+        actions: { visible: false, style: {} },
+        user:    { visible: false, style: {} }
+      },
+      timers: { actions: null, user: null },
+      hovering: { icon: { actions: false, user: false } },
+
+      // Busca
+      searchTerm: this.modelValue || '',
+      searchTimer: null,
+    }
+  },
+
+  watch: {
+    // Mantém o input sincronizado quando o AppLayout limpar/alterar o termo
+    modelValue (val) {
+      const v = (val || '')
+      if (v !== this.searchTerm) this.searchTerm = v
+    }
+  },
+
+  computed: {
+    // Classe de tema para hover dos itens do dropdown
+    themeClass () {
+      return this.context === 'outros' ? 'theme-outros' : 'theme-flamengo'
+    }
+  },
+
+
+  methods: {
+    // Abre dropdown ancorando no CENTRO do ícone e abrindo para a DIREITA
+    openIconMenu (key, evt) {
+      const btn = evt?.currentTarget
+      if (!btn) return
+
+      const r = btn.getBoundingClientRect()
+      const centerX = r.left + (r.width / 2)         // âncora horizontal
+      const left = Math.round(centerX + this.iconMenuOffsetX) // abre à direita
+      const top  = Math.round(r.bottom + this.iconMenuOffsetY) // logo abaixo
+
+      // aplica estilo (coordenadas de viewport)
+      this.menus[key].style = {
+        position: 'fixed',
+        left: `${left}px`,
+        top: `${top}px`,
+        zIndex: 9999
+      }
+      this.menus[key].visible = true
+      this.hovering.icon[key] = true
+      clearTimeout(this.timers[key])
+    },
+
+    // Fecha com pequeno atraso para permitir "sair" do botão e entrar no menu
+    scheduleCloseIcon (key) {
+      this.hovering.icon[key] = false
+      clearTimeout(this.timers[key])
+      this.timers[key] = setTimeout(() => {
+        if (!this.hovering.icon[key]) this.menus[key].visible = false
+      }, 150)
+    },
+
+    // Ao sair do dropdown, inicia fechamento
+    leaveIconMenu (key) {
+      this.hovering.icon[key] = false
+      this.scheduleCloseIcon(key)
+    },
+
+    // Busca com debounce
+    onSearchInput() {
+      // mantém v-model sincronizado imediatamente (visual)
+      this.$emit('update:modelValue', this.searchTerm)
+
+      // busca on the fly com debounce
+      clearTimeout(this.searchTimer)
+      this.searchTimer = setTimeout(() => {
+        this.$emit('search-change', this.searchTerm.trim())
+      }, 300)
+    },
+
+    clearSearch() {
+      this.searchTerm = ''
+      this.$emit('update:modelValue', '')
+      this.$emit('search-change', '')
+    }
+  }
+}
+</script>
+
+<style>
+/* ========
+   HEADER
+   ======== */
+
+/* Barra raiz — knobs FHD (padrão) */
+.cm-header{
+  /* Ajustes finos FHD */
+  --header-vpad: 14px;   /* padding vertical da barra */
+  --logo-scale: 1.18;    /* tamanho do logo */
+  --ctx-left: 40px;      /* distância logo → grupo de botões */
+  --between-ctx: 30px;   /* espaço entre os 2 botões */
+
+  /* Busca (FHD) */
+  --search-basis: 420px; /* largura alvo (flex-basis) */
+  --search-max: 520px;   /* teto de largura */
+  --search-ml: 80px;     /* distância botões → busca */
+  --search-mr: 16px;     /* distância busca → ícones */
+
+  /* Ícones (FHD) */
+  --icons-gap: 15px;     /* distância entre Ações e Usuário */
+  --icons-mr: 80px;      /* distância do grupo de ícones → borda direita (puxado p/ esquerda) */
+
+  width: 100%;
+  height: 85px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: var(--header-vpad) 14px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  background: linear-gradient(to bottom,#000 0%,#1a1a1a 25%,#3a3a3a 55%,#757575 100%);
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(0,0,0,.06);
+  overflow-x: hidden;
+  flex-wrap: nowrap;
+}
+.cm-header > *{ min-width: 0; }
+
+/* Logo à esquerda */
+.cm-brand{
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  flex: 0 0 auto;
+}
+.cm-brand-icon{
+  height: calc(100% - 4px);
+  width: auto;
+  display: block;
+  padding: 2px 0;
+  transform: scale(var(--logo-scale));
+  transform-origin: left center;
+}
+
+/* Botões de contexto (grupo) */
+.cm-ctx-wrap{
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--ctx-left);
+}
+.cm-ctx{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid #b91c1c;
+  border-radius: 12px;
+  background: #000;
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: box-shadow .12s ease, transform .12s ease;
+}
+.cm-ctx + .cm-ctx{ margin-left: var(--between-ctx); }
+.cm-ctx:hover{ transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,.25); }
+.cm-ctx-icon{ width: 22px; height: 22px; object-fit: cover; }
+
+/* Busca — usa knobs para largura/posicionamento */
+.cm-search{
+  position: relative;
+  flex: 0 1 var(--search-basis);
+  max-width: var(--search-max);
+  margin: 0 var(--search-mr) 0 var(--search-ml);
+  align-self: center;
+  box-sizing: border-box;
+}
+.cm-search-input{
+  width: 100%;
+  height: 42px;
+  background: #fff;
+  color: #111;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 0 12px 0 40px;
+  outline: none;
+}
+.cm-search-input::placeholder{ color: #6b7280; }
+.cm-search-icon{
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+.cm-search-clear{
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: #6b7280;
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s ease;
+}
+.cm-search-clear:hover{
+  background: #4b5563;
+}
+
+/* Ícones (Ações / Usuário + nome) */
+.cm-icons{
+  display: inline-flex;
+  align-items: center;
+  gap: var(--icons-gap);
+  margin-left: auto;             /* empurra o bloco para a direita */
+  margin-right: var(--icons-mr); /* ajuste fino até a borda */
+  flex: 0 0 auto;
+}
+.cm-icon-btn{
+  width: 56px;
+  height: 56px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, transform .12s ease;
+}
+.cm-icon-btn:hover{
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.18);
+  transform: translateY(-1px);
+}
+.cm-icon-btn img{
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.cm-user-wrap{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cm-user-label{
+  font-size: 1.6em;           /* +60% */
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: .3px;
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dropdowns — largura controlada no :style; origem no canto sup. esquerdo */
+.cm-dropdown{
+  position: fixed;              /* coordenadas de viewport */
+  background: #f3f4f6;
+  color: #111;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+  box-shadow: 0 12px 28px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.12);
+  z-index: 9999;
+  transform-origin: left top;
+}
+.cm-dropdown li{
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s ease, color .12s ease;
+}
+
+/* Hover por tema (herdado via :class="themeClass") */
+.theme-flamengo.cm-dropdown li:hover{
+  background: #000;
+  color: #e11d2f;
+}
+.theme-outros.cm-dropdown li:hover{
+  background: #0b2340;
+  color: #fff;
+}
+
+/* ===== HD (1366×768): overrides das mesmas vars ===== */
+@media (max-width: 1366px){
+  .cm-header{
+    --logo-scale: 1.10;   /* logo ligeiramente menor no HD */
+
+    /* Busca: manter início onde está e diminuir largura */
+    --search-basis: 300px;  /* ↓ largura-alvo menor */
+    --search-max: 380px;    /* teto menor */
+    --search-ml: 16px;      /* distância botões → busca (mantém início) */
+    --search-mr: 10px;      /* busca → ícones */
+
+    /* Ícones: trazer mais à esquerda e ajustar gap */
+    --icons-gap: 8px;       /* distância entre Ações e Usuário */
+    --icons-mr: 120px;      /* distância até a borda direita (puxado p/ esquerda) */
+  }
+}
+
+/* Ocultar rótulos em telas menores, se quiser no futuro
+@media (max-width: 980px){
+  .cm-ctx span{ display: none; }
+  .cm-user-label{ display: none; }
+}
+*/
+</style>

@@ -1,0 +1,377 @@
+/* Shared grid styles (Flamengo + Outros Times). */
+
+/* =========================================================
+   BASE SCOPE
+   ========================================================= */
+
+.cm-grid{
+  /* default = Outros Times */
+  --grid-border: #dbe3f7;
+  --grid-head-bg: #0a2a66;
+  --grid-head-fg: #fff;
+  --grid-head-border: #061a40;
+
+  --grid-row-border: #e9eefb;
+  --grid-row-odd: #fff;
+  --grid-row-even: #f7f9ff;
+
+  --grid-edge-pad: 12px;
+  --grid-icon-size: 28px;
+
+  --grid-caret-idle: #7a869c;
+  --grid-caret-active: #fff;
+}
+
+/* Flamengo (tema) */
+.cm-grid.cm-grid--fla{
+  --grid-border: #eee;
+  --grid-head-bg: #000;
+  --grid-head-fg: #c00000;
+  --grid-head-border: #2b0000;
+
+  --grid-row-border: #f1f1f1;
+  --grid-row-odd: #fff;
+  --grid-row-even: #f7f7f7;
+
+  --grid-caret-idle: #9aa0a6;
+  --grid-caret-active: #c00000;
+}
+
+/* =========================================================
+   LAYOUT DO GRID
+   ========================================================= */
+
+.cm-grid .grid-panel .title{
+  margin: 0 0 4px;
+}
+
+.cm-grid .grid-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.cm-grid .table-wrap{
+  overflow: auto;
+  border: 1px solid var(--grid-border);
+  border-radius: 10px;
+}
+
+.cm-grid table.grid{
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cm-grid table.grid thead th{
+  position: sticky;
+  top: 0;
+  background: var(--grid-head-bg);
+  color: var(--grid-head-fg);
+  text-align: left;
+  padding: 14px 8px;
+  border-bottom: 2px solid var(--grid-head-border);
+  font-weight: 700;
+}
+
+/* Ícones e seleção */
+.cm-grid .th-icon{
+  width: 30px;
+}
+
+.cm-grid .th-check{
+  width: 44px;
+  text-align: center;
+}
+
+.cm-grid table.grid tbody td{
+  padding: 8px;
+  border-top: 1px solid var(--grid-row-border);
+}
+
+.cm-grid table.grid td.cell-icon{
+  padding: 0 2px;
+}
+
+/* Respiro interno nas bordas */
+.cm-grid table.grid thead th:first-child,
+.cm-grid table.grid tbody td:first-child{
+  padding-left: var(--grid-edge-pad);
+}
+
+.cm-grid table.grid tbody td.cell-icon:first-child{
+  padding-left: var(--grid-edge-pad);
+}
+
+.cm-grid table.grid thead th:last-child,
+.cm-grid table.grid tbody td:last-child{
+  padding-right: var(--grid-edge-pad);
+}
+
+.cm-grid .cell-icon,
+.cm-grid .cell-check{
+  text-align: center;
+}
+
+.cm-grid .icon-btn{
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.cm-grid .icon-btn img{
+  width: var(--grid-icon-size);
+  height: var(--grid-icon-size);
+  display: inline-block;
+}
+
+/* Preço à esquerda e sem quebra */
+.cm-grid .col-preco{
+  min-width: 120px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Zebra */
+.cm-grid table.grid tbody tr:nth-child(odd){
+  background: var(--grid-row-odd);
+}
+
+.cm-grid table.grid tbody tr:nth-child(even){
+  background: var(--grid-row-even);
+}
+
+/* Observações */
+.cm-grid .obs-cell{
+  max-width: 280px;
+}
+
+.cm-grid .obs-wrap{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cm-grid .obs-trunc{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  display: inline-block;
+}
+
+.cm-grid .obs-plain{
+  white-space: pre-wrap;
+}
+
+.cm-grid .obs-empty{
+  color: #999;
+}
+
+.cm-grid .obs-tooltip{
+  position: fixed;
+  z-index: 9999;
+  max-width: 480px;
+  min-width: 320px;
+  background: #fff;
+  color: #000;
+  border-radius: 10px;
+  border: 1px solid #e6e6e6;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  padding: 12px 14px;
+  font-size: 16px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  pointer-events: auto;
+}
+
+/* Pager */
+.cm-grid .pager{
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.cm-grid .pager .btn{
+  min-width: 32px;
+}
+
+.cm-grid .pager .active{
+  font-weight: bold;
+}
+
+/* Ordenação */
+.cm-grid .sortable{
+  cursor: pointer;
+  user-select: none;
+}
+
+.cm-grid th.sortable{
+  white-space: nowrap;
+}
+
+.cm-grid th.th-id{
+  min-width: 56px;
+}
+
+.cm-grid th.th-periodo{
+  min-width: 92px;
+}
+
+.cm-grid .sort-caret{
+  display: inline-block;
+  margin-left: 6px;
+  font-weight: 850;
+  font-size: 16px;
+  line-height: 1;
+  vertical-align: baseline;
+  color: var(--grid-caret-idle);
+  transform: none;
+  width: auto;
+  height: auto;
+  border: 0;
+}
+
+.cm-grid .sort-caret.up::before{
+  content: '▲';
+  color: var(--grid-caret-active);
+}
+
+.cm-grid .sort-caret.down::before{
+  content: '▼';
+  color: var(--grid-caret-active);
+}
+
+.cm-grid .sort-caret.idle::before{
+  content: '▲';
+  color: var(--grid-caret-idle);
+}
+
+/* =========================================================
+   DISABLED: botões de ação (somente dentro do grid)
+   ========================================================= */
+
+.cm-grid .btn-act:disabled,
+.cm-grid .btn-new:disabled,
+.cm-grid .btn-del:disabled,
+.cm-grid .btn-delete:disabled,
+.cm-grid .btn-clear:disabled{
+  opacity: 1;              /* não “some” */
+  background-color: #bfbfbf;
+  border-color: #a9a9a9;
+  color: #ffffff;
+}
+
+/* =========================================================
+   ROLE USER: cursor custom GLOBAL (pro projeto)
+   ========================================================= */
+
+.cm-role-user{
+  --cm-cursor-disabled: url('/icones/cursor_proibido.png') 6 6, not-allowed;
+}
+
+/* regra genérica (ajuda em inputs/aria-disabled) */
+.cm-role-user input:disabled,
+.cm-role-user select:disabled,
+.cm-role-user textarea:disabled,
+.cm-role-user [aria-disabled="true"]{
+  cursor: var(--cm-cursor-disabled) !important;
+}
+
+/* =========================================================
+   ROLE USER: botões/ícones disabled com cursor garantido
+   (workaround: alguns browsers ignoram cursor em button[disabled])
+   ========================================================= */
+
+/* Toolbar não força cursor custom (senão “vaza” pros botões) */
+.cm-role-user .grid-toolbar{
+  cursor: default !important;
+}
+
+/* Botões desabilitados (Nova / Apagar) -> cursor padrão forbidden */
+.cm-role-user .grid-toolbar .btn-act:disabled,
+.cm-role-user .grid-toolbar .btn-act[disabled]{
+  cursor: not-allowed !important;
+}
+
+/* Toolbar: botões disabled precisam receber hover pra cursor funcionar */
+.cm-role-user .grid-toolbar button:disabled{
+  pointer-events: auto !important;
+  cursor: not-allowed !important;
+}
+
+/* Coluna do ícone editar: cursor no TD (estável) */
+.cm-role-user td.cell-icon{
+  cursor: var(--cm-cursor-disabled) !important;
+}
+
+/* e o botão em si não intercepta hover quando disabled */
+.cm-role-user td.cell-icon .icon-btn:disabled,
+.cm-role-user td.cell-icon .icon-btn[disabled]{
+  pointer-events: none !important;
+}
+
+/* Visual do ícone editar disabled */
+.cm-role-user .icon-btn:disabled img,
+.cm-role-user .icon-btn[disabled] img{
+  opacity: 0.35;
+  filter: grayscale(100%);
+}
+
+/* =========================================================
+   ROLE USER: coluna de checkbox (cursor estável + sem “mãozinha”)
+   ========================================================= */
+
+.cb-disabled{
+  cursor: var(--cm-cursor-disabled) !important;
+}
+
+/* “mata” o cursor do input (que no Fla estava virando mão) e trava eventos no input */
+.cb-disabled input[type="checkbox"]{
+  cursor: inherit !important;
+  pointer-events: none !important;
+}
+
+/* Esmaecimento padrão (Fla + Outros) */
+.cm-role-user .th-check input[type="checkbox"]:disabled,
+.cm-role-user .cell-check input[type="checkbox"]:disabled{
+  opacity: 0.55;                 /* aqui fica o “cinza bonito” */
+  filter: grayscale(100%);
+}
+
+/* =========================================================
+   Outros Times: checkbox disabled com “caixinha bonita”
+   (somente role=user; admin mantém nativa)
+   ========================================================= */
+
+.cm-grid--outros.cm-role-user .th-check input[type="checkbox"]:disabled,
+.cm-grid--outros.cm-role-user .cell-check input[type="checkbox"]:disabled{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #9a9a9a;
+  border-radius: 4px;
+  background: #e9e9e9;
+  display: inline-grid;
+  place-content: center;
+  position: relative;
+  opacity: 1; /* não deixa o opacity global “lavar” a caixa */
+  filter: none;
+}
+
+.cm-grid--outros.cm-role-user .th-check input[type="checkbox"]:disabled:checked,
+.cm-grid--outros.cm-role-user .cell-check input[type="checkbox"]:disabled:checked{
+  background: #d9d9d9;
+  border-color: #9a9a9a;
+}
+
+.cm-grid--outros.cm-role-user .th-check input[type="checkbox"]:disabled:checked::after,
+.cm-grid--outros.cm-role-user .cell-check input[type="checkbox"]:disabled:checked::after{
+  content: '✔';
+  color: #777;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 800;
+}

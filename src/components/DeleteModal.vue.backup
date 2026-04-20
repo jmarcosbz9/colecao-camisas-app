@@ -1,0 +1,187 @@
+busy<template>
+  <div
+    v-if="open"
+    class="del-overlay"
+    role="presentation"
+    tabindex="-1"
+    @keydown.esc.prevent="emitCancel"
+    @click.self="emitCancel"
+  >
+    <div class="del-card" :class="variantClass" role="dialog" aria-modal="true" aria-label="Apagar">
+      <div class="del-body">
+        <img class="del-icon" :src="iconSrc" alt="" />
+        <div class="del-text">
+          <div class="del-title">Apagar?</div>
+          <div v-if="error" class="del-error">{{ error }}</div>
+        </div>
+      </div>
+
+      <div class="del-actions">
+        <button ref="btnNo" class="btn btn-no" :disabled="busy" @click="emitCancel">Não</button>
+        <button class="btn btn-yes" :disabled="busy" @click="emitConfirm">
+          {{ busy ? 'Apagando…' : 'Sim' }}
+        </button>
+      </div>
+	  <div v-if="busy" class="del-status">Apagando...</div> 
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'DeleteModal',
+  props: {
+    open: { type: Boolean, default: false },
+    busy: { type: Boolean, default: false },
+    error: { type: String, default: '' },
+    variant: { type: String, default: 'outros' }, // 'outros' | 'fla'
+    icon: { type: String, default: '/icones/recycle-bin.png' },
+  },
+  computed: {
+    variantClass() {
+      return this.variant === 'fla' ? 'del--fla' : 'del--outros'
+    },
+    iconSrc() {
+      return this.icon
+    },
+  },
+  watch: {
+    open(v) {
+      if (v) this.$nextTick(this.focusSelf)
+    },
+  },
+  mounted() {
+    if (this.open) this.$nextTick(this.focusSelf)
+  },
+  methods: {
+    focusSelf() {
+      try {
+        // default focus on "Não" (safer default action)
+        const btn = this.$refs && this.$refs.btnNo
+        if (btn && btn.focus && !btn.disabled) {
+          btn.focus()
+          return
+        }
+        const el = this.$el
+        if (el && el.focus) el.focus()
+      } catch (e) {
+        /* noop */
+      }
+    },
+    emitCancel() {
+      this.$emit('cancel')
+    },
+    emitConfirm() {
+      this.$emit('confirm')
+    },
+  },
+}
+</script>
+
+<style scoped>
+.del-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.del-card {
+  width: min(420px, calc(100vw - 36px));
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.del-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.del-icon {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  object-fit: contain;
+}
+
+.del-title {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+
+.del-error {
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 1.25;
+  color: #000;
+  font-weight: 700;
+  max-width: 320px;
+  word-break: break-word;
+}
+
+.del-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* botões */
+.btn {
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 800;
+  border: 1px solid transparent;
+  cursor: pointer;
+  min-width: 92px;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* tema Outros Times (azul) */
+.del--outros .btn-no {
+  background: #0a2a66;
+  border-color: #0a2a66;
+  color: #fff;
+}
+.del--outros .btn-yes {
+  background: #fff;
+  border-color: #0a2a66;
+  color: #0a2a66;
+}
+
+/* tema Flamengo (preto/vermelho) */
+.del--fla .btn-no {
+  background: #000;
+  border-color: #000;
+  color: #c00000;
+}
+.del--fla .btn-yes {
+  background: #fff;
+  border-color: #000;
+  color: #000;
+}
+
+@media (max-width: 420px) {
+  .del-title {
+    font-size: 20px;
+  }
+  .del-icon {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+  }
+}
+</style>

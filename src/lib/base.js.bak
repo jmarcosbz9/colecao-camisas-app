@@ -1,0 +1,17 @@
+const V_API = import.meta?.env?.VITE_API_BASE;
+const V_FILES = import.meta?.env?.VITE_FILE_BASE;
+
+const trimSlashes = (s) => s.replace(/\/+$/g, '').replace(/^([^:])\/+/g, '$1');
+
+export const API = trimSlashes(V_API || '/api');
+export const FILES = trimSlashes(
+  (V_FILES || '').trim() || API.replace(/\/api\/?$/i, '') + '/uploads'
+);
+
+export function asset(p) {
+  if (!p) return '';
+  if (/^https?:\/\//i.test(p)) return p;
+  const base = FILES.replace(/\/+$/g, '');
+  const path = String(p).replace(/^\/+/g, '');
+  return `${base}/${path}`.replace(/([^:]\/)\/+/g, '$1');
+}

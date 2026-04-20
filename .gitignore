@@ -1,0 +1,32 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+
+# Variáveis de ambiente (não subir segredos)
+.env.production
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+
+# OS
+.DS_Store
+Thumbs.db

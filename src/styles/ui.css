@@ -1,0 +1,312 @@
+/* =========================================================
+   File: src/styles/ui.css
+   Consolidated UX/CSS for Coleção de Camisas
+   ========================================================= */
+
+/* ---------- CSS Variables ---------- */
+:root{
+  /* brand */
+  --brand-fla: #e70000;
+  --brand-outros: #0077cc;
+  --bg: #ffffff;
+  --bg-soft: #f9f9f9;
+  --muted: #666;
+  --text: #111;
+  --border: #e5e5e5;
+
+  /* icons (public/uploads/icones) */
+  --icon-home-fla: url("/icones/casa_vermelha.png");
+  --icon-home-outros: url("/icones/casa_branca.png");
+  --icon-home-default: url("/icones/casa.png");
+  --icon-gear: url("/icones/engrenagem.png");
+  --icon-user: url("/icones/usuario.png");
+  --icon-edit: url("/icones/editar.png");
+  --icon-view: url("/icones/visualizar_1.png");
+  --icon-filter: url("/icones/filter.png");
+  --icon-trash: url("/icones/trash.png");
+  --icon-photo: url("/icones/photo.png");
+  --icon-info: url("/icones/info.png");
+
+  /* typography */
+  --fs-base: 14px;
+  --fs-sm: 12px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+}
+
+/* ---------- Base ---------- */
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; }
+body{
+  margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans";
+  color: var(--text); background: var(--bg);
+  font-size: var(--fs-base); line-height: 1.4;
+}
+img { max-width:100%; display:block; }
+a { color: inherit; text-decoration: none; }
+
+/* ---------- Utilities ---------- */
+.container{ max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+.row{ display:flex; align-items:center; gap:8px; }
+.hidden-sm{ display:inline-block; }
+@media (max-width: 640px){
+  .hidden-sm{ display:none; }
+}
+.input{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+.card{ border:1px solid var(--border); border-radius:12px; background:#fff; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+.truncate{ display:inline-block; max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.muted{ color: var(--muted); }
+
+/* ---------- Header ---------- */
+.header{
+  background: linear-gradient(to bottom, #000 0%, #444 100%);
+  color:#fff; padding: 14px 0;
+}
+.header .logo{ height: 48px; }
+.header .username{ font-weight:600; }
+
+/* ---------- Icon-only Buttons (ghost) ---------- */
+.btn--icon-only{
+  display:inline-flex; align-items:center; justify-content:center;
+  width: 32px; height: 32px; padding:0; border:none; background:transparent; cursor:pointer;
+}
+.btn--icon-only::before{
+  content:""; width:20px; height:20px; display:block;
+  background-size: contain; background-repeat:no-repeat; background-position:center;
+}
+.btn--icon-only:hover, .btn--icon-only:focus-visible{ opacity:.85; }
+.btn--view::before{ background-image: var(--icon-view); }
+.btn--edit::before{ background-image: var(--icon-edit); }
+.btn--gear::before{ background-image: var(--icon-gear); }
+.btn--user::before{ background-image: var(--icon-user); }
+.btn--filter::before{ background-image: var(--icon-filter); }
+.btn--trash::before{ background-image: var(--icon-trash); }
+.btn--photo::before{ background-image: var(--icon-photo); }
+
+/* ---------- User chip (texto + ícone via ::before) ---------- */
+.user-chip{
+  display:inline-flex; align-items:center; gap:8px; background:transparent;
+  border:none; color:#fff; padding:0; cursor:pointer;
+}
+.user-chip::before{
+  content:""; width:20px; height:20px; display:inline-block;
+  background-image: var(--icon-user); background-size:contain; background-repeat:no-repeat; background-position:center;
+}
+
+/* ---------- Breadcrumb ---------- */
+.breadcrumb { padding: 10px 0; }
+.breadcrumb .trail{ display:flex; gap:8px; font-weight:600; align-items:center; }
+.breadcrumb .sep { margin: 0 4px; opacity:.6; }
+.breadcrumb.flamengo { background:#000; color:#fff; }
+.breadcrumb.outros   { background:#0077cc; color:#fff; }
+.icon{
+  width:20px; height:20px; display:inline-block;
+  background-size:contain; background-repeat:no-repeat; background-position:center;
+}
+.icon--home-fla{ background-image: var(--icon-home-fla); }
+.icon--home-outros{ background-image: var(--icon-home-outros); }
+.icon--home{ background-image: var(--icon-home-default); }
+.breadcrumb .home-icon{ margin-right:8px; }
+
+/* ---------- Layout com Sidebar (20–25%) ---------- */
+.layout{
+  display:grid; grid-template-columns: 280px 1fr; gap:16px;
+}
+@media (max-width: 920px){
+  .layout{ grid-template-columns: 1fr; }
+  .sidebar{ order:2; }
+}
+.sidebar{
+  position: sticky; top: 16px;
+  align-self: start;
+  background: var(--bg-soft);
+  border:1px solid var(--border); border-radius:12px; padding:14px;
+}
+.sidebar h4{
+  margin:0 0 10px; font-size: var(--fs-lg);
+  font-weight: 700;
+}
+.sidebar .field + .field{ margin-top: 12px; }
+
+/* ---------- Tabela (zebra + hover) ---------- */
+.table{ width:100%; border-collapse: separate; border-spacing:0; background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.table thead th{
+  text-align:left; padding:10px; background:#f2f2f2; font-weight:700; border-bottom:1px solid var(--border);
+  font-size: var(--fs-sm); letter-spacing:.2px;
+}
+.table tbody td{ padding:10px; border-bottom:1px solid var(--border); vertical-align: middle; }
+.table tbody tr:nth-child(even){ background:#fbfbfb; }
+.table tbody tr:hover{ background:#f9f9f9; }
+.table .sel{ width:56px; text-align:center; }
+.table .act{ width:100px; }
+.cell-actions{ display:flex; gap:8px; align-items:center; }
+
+/* ---------- Thumbs ---------- */
+.thumb-grid{
+  display:grid; gap:8px;
+  grid-auto-rows: min-content;
+}
+.thumb{
+  width:100%; height:auto; border-radius:10px;
+  border:1px solid var(--border);
+  object-fit: cover;
+}
+
+/* ---------- Buttons (generic filled) ---------- */
+.btn{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 12px; border-radius:10px; border:1px solid var(--border); background:#fff; cursor:pointer;
+}
+.btn--primary{ background: var(--brand-outros); color:#fff; border-color: transparent; }
+.btn--danger{ background: #b00020; color:#fff; border-color: transparent; }
+.btn--icon::before{
+  content:""; width:18px; height:18px; display:inline-block;
+  background-size: contain; background-repeat:no-repeat; background-position:center;
+}
+.btn--gear::before{ background-image: var(--icon-gear); }
+.btn--user::before{ background-image: var(--icon-user); }
+.btn--edit::before{ background-image: var(--icon-edit); }
+.btn--view::before{ background-image: var(--icon-view); }
+.btn--filter::before{ background-image: var(--icon-filter); }
+.btn--trash::before{ background-image: var(--icon-trash); }
+.btn--photo::before{ background-image: var(--icon-photo); }
+
+/* ---------- Forms ---------- */
+.checkbox{ display:flex; align-items:center; gap:8px; }
+input[type="text"], input[type="number"], select{
+  width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:#fff;
+}
+.filters-toggle{ padding:8px 12px; border-radius:10px; border:1px solid var(--border); background:#fff; }
+
+/* ---------- Accessibility (reduced motion) ---------- */
+@media (prefers-reduced-motion: no-preference){
+  .btn--icon-only{ transition: transform .15s ease, opacity .15s ease; }
+  .btn--icon-only:hover{ transform: scale(1.05); }
+}
+
+/* ---------- Misc ---------- */
+.tips{ font-size: var(--fs-sm); color: var(--muted); }
+
+
+/* =========================================================
+   Modal Form – Create / Edit (reaproveitável)
+   ========================================================= */
+
+.modal-form{
+  background:#fff;
+  border-radius:18px;
+  overflow:hidden;
+  max-width:920px;
+  width:95vw;
+}
+
+/* ---------- Header ---------- */
+.modal-form__header{
+  padding:18px 22px;
+  cursor:move;
+}
+
+.modal-form__header h3{
+  font-size:24px;
+}
+
+/* ---------- Body ---------- */
+.modal-form__body{
+  padding:22px;
+}
+
+.modal-form__grid{
+  display:grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:16px 18px;
+}
+
+.modal-form__full{
+  grid-column:1 / -1;
+}
+
+/* labels */
+.modal-form label{
+  font-size:15px;
+  font-weight:600;
+  color:#0b2340;
+  display:block;
+  margin-bottom:4px;
+}
+
+/* inputs */
+.modal-form input,
+.modal-form textarea,
+.modal-form select{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid #0b2340;
+  border-radius:8px;
+  background:#fff;
+  color:#0b2340;
+}
+
+/* ---------- Money ---------- */
+.input-money{
+  padding-left:42px;
+  position:relative;
+}
+.input-money::before{
+  content:"R$";
+  position:absolute;
+  left:12px;
+  top:50%;
+  transform:translateY(-50%);
+  font-weight:600;
+  color:#0b2340;
+}
+
+/* ---------- Dropzone ---------- */
+.dropzone{
+  border:2px dashed #0b2340;
+  border-radius:14px;
+  padding:14px;
+}
+
+.dropzone__thumbs{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.dropzone__item{
+  width:120px;
+  text-align:center;
+}
+
+.dropzone__item img{
+  width:100%;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
+
+.dropzone__name{
+  font-size:12px;
+  margin-top:4px;
+  word-break:break-all;
+}
+
+/* ---------- Footer ---------- */
+.modal-form__footer{
+  display:flex;
+  justify-content:flex-end;
+  gap:12px;
+  margin-top:14px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width:768px){
+  .modal-form__grid{
+    grid-template-columns:1fr;
+  }
+}
+
