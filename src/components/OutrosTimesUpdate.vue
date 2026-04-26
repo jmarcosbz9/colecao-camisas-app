@@ -425,7 +425,10 @@ props: {
       _mu: null,
 
       // close dropdown on outside click
-      _docDown: null
+      _docDown: null,
+
+      // rascunho (draft)
+      draftOffer: { show: false, hadPhotos: false, payload: null }
     };
   },
 
@@ -488,13 +491,26 @@ props: {
         return []
       }
     },
+    uploadsBase(){
+      // Em produção o frontend (Cloudflare Pages) e o backend (Railway) são origens
+      // diferentes, portanto /uploads/* precisa ser URL absoluta apontando para o
+      // backend Flask, que redireciona para o R2.
+      const isLocal =
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
+      return isLocal ? '' : 'https://api.camisas.bizi.net.br'
+    },
     fotoThumbSrc(f){
       const rel = (f && (f.thumbnail || f.name)) ? String(f.thumbnail || f.name) : ''
-      return rel ? ('/uploads/' + rel.replace(/^[\\/]+/, '').replace(/\\\\/g,'/')) : ''
+      if (!rel) return ''
+      const clean = rel.replace(/^[/\\]+/, '').replace(/\\/g, '/')
+      return this.uploadsBase() + '/uploads/' + clean
     },
     fotoFullSrc(f){
       const rel = (f && f.name) ? String(f.name) : ''
-      return rel ? ('/uploads/' + rel.replace(/^[\\/]+/, '').replace(/\\\\/g,'/')) : ''
+      if (!rel) return ''
+      const clean = rel.replace(/^[/\\]+/, '').replace(/\\/g, '/')
+      return this.uploadsBase() + '/uploads/' + clean
     },
     buildPvItems(){
       const a = Array.isArray(this.existingFotos) ? this.existingFotos : []
