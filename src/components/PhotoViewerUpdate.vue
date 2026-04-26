@@ -219,6 +219,9 @@ export default {
     },
 
     cursorClass() {
+      // Durante o panning mantemos grabbing independentemente de hoverOnPhoto
+      if (this.dragging) return 'pv-cursor-grabbing'
+
       if (!this.hoverOnPhoto) return 'pv-cursor-default'
       if (!this.fitReady) return 'pv-cursor-default'
 
@@ -417,11 +420,10 @@ export default {
     },
 
     onPhotoLeave: function () {
+      // Não altera hoverOnPhoto enquanto panning estiver ativo;
+      // o mouseup no window já cuida de encerrar o drag.
+      if (this.dragging) return
       this.hoverOnPhoto = false
-      if (this.dragging) {
-        this.dragging = false
-        this.detachDragListeners()
-      }
     },
 
     updateCursorIdle: function () {
@@ -506,9 +508,20 @@ export default {
         self.clampPan()
       }
 
-      this._onUp = function () {
+      this._onUp = function (upEv) {
         self.dragging = false
-        self.cursorMode = 'grab'
+        // Verifica se o mouse terminou dentro do viewport para definir o cursor correto
+        var vp = self.$refs && self.$refs.viewport
+        if (vp && upEv) {
+          var r = vp.getBoundingClientRect()
+          var inside = upEv.clientX >= r.left && upEv.clientX <= r.right &&
+                       upEv.clientY >= r.top  && upEv.clientY <= r.bottom
+          self.hoverOnPhoto = inside
+          self.cursorMode = inside ? 'grab' : 'pointer'
+        } else {
+          self.hoverOnPhoto = false
+          self.cursorMode = 'grab'
+        }
         window.removeEventListener('mousemove', self._onMove)
         window.removeEventListener('mouseup', self._onUp)
       }
