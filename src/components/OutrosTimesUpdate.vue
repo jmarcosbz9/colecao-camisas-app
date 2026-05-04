@@ -551,7 +551,19 @@ applyItemToForm() {
 
       // preço
       if (it.Preco != null) {
-        this.precoDisplay = this.formatMoneyToBR(it.Preco);
+        const fixed = this.normalizeMoneyToFixed(String(it.Preco));
+        if (fixed !== null) {
+          try {
+            this.precoDisplay = Number(fixed).toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+          } catch (e) {
+            this.precoDisplay = fixed.replace(".", ",");
+          }
+        } else {
+          this.precoDisplay = "";
+        }
       }
     },
     
