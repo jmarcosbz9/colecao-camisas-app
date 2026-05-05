@@ -123,8 +123,9 @@ async function handleLogin() {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   padding: clamp(16px, 2.5vw, 40px);
+  padding-right: clamp(16px, 3vw, 48px);
 
 /* Gradiente vertical: vermelho sólido -> vermelho claro -> preto sólido -> cinza */
     background: linear-gradient(
@@ -141,7 +142,7 @@ async function handleLogin() {
   background: rgba(255, 255, 255, 0.96);
   border-radius: 16px;
   width: 100%;
-  max-width: 440px;
+  max-width: 480px;
   padding: 40px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
@@ -265,7 +266,7 @@ async function handleLogin() {
 
   .login-box {
     padding: 18px;
-    max-width: 420px;
+    max-width: 460px;
   }
 
   .brand-varal {
