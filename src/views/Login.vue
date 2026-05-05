@@ -248,13 +248,13 @@ async function handleLogin() {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: center center;
+  object-position: right center;
 }
 
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.22);
+  background: transparent;
 }
 
 /* Compacta o formulário em telas baixas (inclui 1366x768) */
