@@ -232,15 +232,23 @@ async function handleLogin() {
 .login-right {
   flex: 1.15;
   position: relative;
-  background: #000;
+  /* Mesmo gradiente do lado esquerdo: aparece nas laterais com contain */
+  background: linear-gradient(
+    180deg,
+    #c40000 0%,
+    #ff4b4b 40%,
+    #000000 50%,
+    #000000 65%,
+    #cfcfcf 100%
+  );
   overflow: hidden;
 }
 
 .hero-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center 15%;
+  object-fit: contain;
+  object-position: center center;
 }
 
 .overlay {
@@ -249,9 +257,9 @@ async function handleLogin() {
   background: rgba(0, 0, 0, 0.22);
 }
 
-/* Ajuste para telas com altura até 800px (inclui 1366x768) */
+/* Compacta o formulário em telas baixas (inclui 1366x768) */
 @media (max-height: 800px) {
-    .login-left {
+  .login-left {
     padding: 14px;
   }
 
@@ -289,20 +297,6 @@ async function handleLogin() {
   .btn-login {
     padding: 10px;
   }
-}
 
-/* Ajuste fino para 1366x768: formulário com largura fixa, foto ocupa o resto */
-@media (min-width: 1300px) and (max-width: 1440px) and (max-height: 800px) {
-  .login-left {
-    flex: 0 0 420px;
-  }
-
-  .login-right {
-    flex: 1;
-  }
-
-  .hero-image {
-    object-position: center 20%;
-  }
 }
 </style>
