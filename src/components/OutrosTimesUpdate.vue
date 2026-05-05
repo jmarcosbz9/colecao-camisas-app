@@ -971,7 +971,7 @@ this.enumOptions.Manga = Array.isArray(j.Manga) ? j.Manga : [];
           fd.append("payload", JSON.stringify(payload));
           for (let i = 0; i < this.photoItems.length; i++) fd.append("fotos", this.photoItems[i].file);
 
-          await axios.put(url, fd, { headers: { "Content-Type": "multipart/form-data" } });
+          await axios.put(url, fd);
         } else {
           await axios.put(url, payload);
         }

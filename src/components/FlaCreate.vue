@@ -422,14 +422,6 @@ export default {
       this.fetchFornecedoras().catch(() => {})
     },
 
-    token() {
-      try {
-        return localStorage.getItem('token') || ''
-      } catch (e) {
-        return ''
-      }
-    },
-
     async fetchEnums() {
       // IMPORTANTE:
       // o endpoint atual do backend devolve:
@@ -452,7 +444,8 @@ export default {
 
         // se por algum motivo vier vazio (ex.: filtro de "wanted" não bateu), tenta sem querystring
         const allEmpty =
-          (!this.enums.Modelo || this.enums.Modelo.length === 0) &&          (!this.enums.Manga || this.enums.Manga.length === 0) &&
+          (!this.enums.Modelo || this.enums.Modelo.length === 0) &&
+          (!this.enums.Manga || this.enums.Manga.length === 0) &&
           (!this.enums.Conservacao || this.enums.Conservacao.length === 0)
 
         if (allEmpty) {
@@ -487,8 +480,6 @@ export default {
 
       this.enumsLoaded = true
     },
-
-    
 
     async fetchFornecedoras() {
       try {
@@ -580,7 +571,8 @@ export default {
       }
       this.toggleDd(field)
     },
-toggleDd(field) {
+
+    toggleDd(field) {
       // fecha outros
       for (const k in this.ddOpen) {
         if (k !== field) this.ddOpen[k] = false
@@ -606,7 +598,7 @@ toggleDd(field) {
       this.form[field] = opt
       this.closeAllDd()
 
-      // foco “natural”
+      // foco "natural"
       if (field === 'Modelo') this.focusRef('fornecedora')
       if (field === 'Fornecedora') this.focusRef('manga')
       if (field === 'Manga') this.focusRef('periodo')
@@ -645,12 +637,12 @@ toggleDd(field) {
       if (!insideDd) this.closeAllDd()
     },
 
-    // Drag modal (mantém o que já estava OK)
+    // Drag modal
     onDragStart(e) {
       this.drag.on = true
-	  // cursor “closed hand”
-	  if (this.$refs.headerRef) this.$refs.headerRef.classList.add('grabbing')
-      	  this.drag.startX = e.clientX
+      // cursor "closed hand"
+      if (this.$refs.headerRef) this.$refs.headerRef.classList.add('grabbing')
+      this.drag.startX = e.clientX
       this.drag.startY = e.clientY
       this.drag.baseX = this.pos.x
       this.drag.baseY = this.pos.y
@@ -666,8 +658,8 @@ toggleDd(field) {
     },
     onDragEnd() {
       this.drag.on = false
-	  // volta para “open hand”
-	  if (this.$refs.headerRef) this.$refs.headerRef.classList.remove('grabbing')
+      // volta para "open hand"
+      if (this.$refs.headerRef) this.$refs.headerRef.classList.remove('grabbing')
       document.removeEventListener('mousemove', this.onDragMove)
       document.removeEventListener('mouseup', this.onDragEnd)
     },
@@ -686,7 +678,7 @@ toggleDd(field) {
       })
     },
 
-    // Preço (mesmo padrão “robusto” do OutrosTimesCreate)
+    // Preço (mesmo padrão "robusto" do OutrosTimesCreate)
     normalizePrecoFromDisplay(s) {
       if (s == null) return '0.00'
       let x = String(s).trim()
@@ -755,6 +747,7 @@ toggleDd(field) {
       this.$set ? this.$set(this.errs, k, msg) : (this.errs[k] = msg)
     },
 
+    // CORRIGIDO: verifica se há chaves com valor truthy, não apenas se há chaves
     validate() {
       this.resetErrors()
 
@@ -769,11 +762,14 @@ toggleDd(field) {
         this.setErr('Preco', 'Preencha o preço.')
       }
 
-      // se tem qualquer erro, falha
-      for (const k in this.errs) return false
+      // se tem qualquer erro com mensagem, falha
+      for (const k in this.errs) {
+        if (this.errs[k]) return false
+      }
       return true
     },
 
+    // CORRIGIDO: usa axios unificado em vez de fetch nativo (garante JWT automático)
     async submitCreate() {
       if (this.saving) return
       if (!this.validate()) {
@@ -791,7 +787,7 @@ toggleDd(field) {
         const payload = {
           Modelo: this.form.Modelo,
           Fornecedora: this.form.Fornecedora,
-        fornecedora_id: this.form.fornecedora_id,
+          fornecedora_id: this.form.fornecedora_id,
           Manga: this.form.Manga,
           Conservacao: this.form.Conservacao,
           Periodo: this.form.Periodo,
@@ -800,31 +796,15 @@ toggleDd(field) {
           Observacoes: this.form.Observacoes ? this.form.Observacoes : null
         }
 
-        const t = this.token()
-        const headers = {}
-        if (t) headers.Authorization = 'Bearer ' + t
-
         if (!this.photoItems || this.photoItems.length === 0) {
-          headers['Content-Type'] = 'application/json'
-          const res = await fetch('/api/flamengo', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(payload)
-          })
-          if (!res.ok) throw new Error('create_failed')
+          await axios.post('/api/flamengo', payload)
         } else {
           const fd = new FormData()
           fd.append('payload', JSON.stringify(payload))
           for (let i = 0; i < this.photoItems.length; i++) {
             fd.append('fotos', this.photoItems[i].file)
           }
-
-          const res = await fetch('/api/flamengo', {
-            method: 'POST',
-            headers, // só Authorization (NÃO setar Content-Type)
-            body: fd
-          })
-          if (!res.ok) throw new Error('create_failed')
+          await axios.post('/api/flamengo', fd)
         }
 
         this.$emit('success')
@@ -898,124 +878,90 @@ toggleDd(field) {
 .fc-head-left{
   display:flex;
   align-items:center;
-  gap: 15px;
-  padding-left: 6px;
+  gap: 10px;
 }
 
-/* Logo do Flamengo */
-.fc-logo{
-  width: auto;
-  height: 60px;
-  object-fit: contain;
-  display:block;
-}
+/* Logo no cabeçalho */
+.fc-logo{ width: 48px; height: 48px; object-fit: contain; }
 
 /* Título do modal */
-.fc-title{
-  margin:0;
-  font-size: 22px;
-  color:#fff;
-  font-weight: 900;
-  letter-spacing: .2px;
-}
+.fc-title{ font-size: 20px; font-weight: 900; color: #fff; margin: 0; }
 
-/* Botão fechar (X) */
+/* Botão fechar (×) */
 .fc-close{
-  border:none;
-  background:transparent;
-  color:#fff;
+  background: transparent;
+  border: none;
+  color: #fff;
   font-size: 22px;
-  cursor:pointer;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
 }
+.fc-close:hover{ background: rgba(255,255,255,.12); }
 
-/* Corpo do modal (área com scroll do form) */
+/* Corpo do modal (scrollável) */
 .fc-body{
-  padding: 14px 16px 10px;
-  overflow-y:auto;
-  background:#fff;
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fff;
 }
 
-/* Linhas do form em grid */
-.row{ display:grid; gap: 12px; margin-bottom: 12px; }
-.row.one{ grid-template-columns: 1fr; }
-.row.two{ grid-template-columns: 1fr 1fr; }
-.row.three{ grid-template-columns: 1fr 120px 1fr; }
+/* Linha de campos */
+.row{ display: flex; gap: 12px; }
+.row.two > .field{ flex: 1; min-width: 0; }
+.row.three > .field{ flex: 1; min-width: 0; }
+.row.one > .field{ flex: 1; }
 
-/* Responsividade das linhas com 3 colunas */
-@media (max-width: 860px){
-  .row.three{ grid-template-columns: 1fr 1fr; }
-  .row.three .field:nth-child(3){ grid-column: 1 / -1; }
-}
-@media (max-width: 640px){
-  .row.two{ grid-template-columns: 1fr; }
-  .row.three{ grid-template-columns: 1fr; }
-}
+/* Campo genérico */
+.field{ display: flex; flex-direction: column; }
 
-/* Label dos campos */
-.lbl{
-  display:block;
-  font-size: 14px;
-  color: #111;
-  font-weight: 900;
-  margin-bottom: 6px;
-}
+/* Label do campo */
+.lbl{ font-size: 12px; font-weight: 800; color: #111; margin-bottom: 4px; }
 
-/* Inputs padrão (fundo escuro, texto branco) */
+/* Input de texto genérico */
 .inp{
-  width: 100%;
-  background: #1b1b1b;
+  padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid rgba(0,0,0,.35);
-  padding: 8px 10px;
+  background: #1b1b1b;
   font-size: 14px;
   color: #fff;
-  outline: none;
   box-sizing: border-box;
+  outline: none;
 }
-
-/* Focus do input */
-.inp:focus{
-  border-color: var(--fc-red);
-  box-shadow: 0 0 0 3px rgba(176,0,32,.22);
-}
-
-/* Input preenchido (fonte ligeiramente maior) */
+.inp:focus{ border-color: var(--fc-red); box-shadow: 0 0 0 3px rgba(176,0,32,.22); }
 .inp.filled{ font-size: 15px; }
+.inp::placeholder{ color: var(--fc-hint); font-weight: 400; opacity: 1; }
 
-/* Campo Período (texto vermelho e negrito) */
-.inp-periodo{ color: var(--fc-red); font-weight: 900; }
-
-/* Campo Número preenchido (texto vermelho e negrito) */
-.inp-numero.filled{ color: var(--fc-red); font-weight: 900; font-size: 15px; }
-
-/* Campo Preço preenchido (texto vermelho e negrito) */
-.money-input.filled{ color: var(--fc-red); font-weight: 900; font-size: 15px; }
-
-/* Textarea Observações (fundo branco) */
+/* Textarea de observações */
 .ta{
-  width: 100%;
-  background: #fff;
-  color: #111;
-  border-radius: 8px;
-  border: 1px solid rgba(0,0,0,.18);
   padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,.35);
+  background: #1b1b1b;
   font-size: 14px;
-  outline: none;
+  color: #fff;
   box-sizing: border-box;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
 }
-
-/* Focus do textarea */
-.ta:focus{
-  border-color: var(--fc-red);
-  box-shadow: 0 0 0 3px rgba(176,0,32,.12);
-}
-
-/* Textarea preenchido (fonte ligeiramente maior) */
+.ta:focus{ border-color: var(--fc-red); box-shadow: 0 0 0 3px rgba(176,0,32,.22); }
 .ta.filled{ font-size: 15px; }
 
-/* Placeholders/hints em campos escuros */
+/* Placeholder dos inputs e textarea */
 .inp::placeholder,
-.ta::placeholder,
+.ta::placeholder{
+  color: var(--fc-hint);
+  font-weight: 400;
+  opacity: 1;
+}
+
 .money-input::placeholder{
   color: var(--fc-hint);
   font-weight: 400;
@@ -1056,16 +1002,16 @@ toggleDd(field) {
 /* Seta do dropdown + animação */
 .dd-arr{
   position: relative;
-  display: inline-flex;          /* de inline-block → inline-flex (centraliza o desenho) */
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;                   /* ligeiramente maior pra caber a box */
+  width: 22px;
   height: 22px;
   flex: 0 0 22px;
-  color: var(--fc-red);          /* mantém vermelho */
-  transform: rotate(0deg);       /* fechado = para baixo */
+  color: var(--fc-red);
+  transform: rotate(0deg);
   transition: transform 520ms cubic-bezier(.2,.8,.2,1), background-color 140ms ease, box-shadow 140ms ease;
-  border-radius: 6px;            /* cantos arredondados da box */
+  border-radius: 6px;
 }
 
 /* Box no hover do caret */
@@ -1101,7 +1047,7 @@ toggleDd(field) {
 
 /* aberto: ˄ */
 .dd-arr.open{
-  transform: rotate(-180deg);   /* anti-horário */
+  transform: rotate(-180deg);
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -1130,7 +1076,7 @@ toggleDd(field) {
 /* Hover do item do dropdown (faixa vermelha com texto preto) */
 .dd-item:hover{ background: var(--fc-red); color: #000; }
 
-/* Item de “sem valores” no dropdown */
+/* Item de "sem valores" no dropdown */
 .dd-item.dd-empty{ color: rgba(255,255,255,.55); font-weight: 700; cursor: default; }
 .dd-item.dd-empty:hover{ background: transparent; color: rgba(255,255,255,.55); }
 
@@ -1196,7 +1142,7 @@ toggleDd(field) {
 .err{ margin-top: 6px; color: #d32f2f; font-weight: 900; font-size: 12px; }
 .err.bottom{ margin-top: 10px; }
 
-/* Link “Não encontrou a fornecedora?” (abaixo do dropdown, canto inferior direito) */
+/* Link "Não encontrou a fornecedora?" (abaixo do dropdown, canto inferior direito) */
 .forn-help-link{
   display:block;
   width: 100%;
@@ -1239,4 +1185,3 @@ toggleDd(field) {
 /* Botão Adicionar do mini-modal (texto vermelho visível no fundo preto) */
 .fc-mini-actions .btn.primary{ color: #ff0000; font-weight: 900; }
 </style>
-

@@ -240,6 +240,7 @@ async function handleLogin() {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 15%;
 }
 
 .overlay {
@@ -248,7 +249,7 @@ async function handleLogin() {
   background: rgba(0, 0, 0, 0.22);
 }
 
-/* Ajuste específico pra 1366x768: reduz um pouco pra não “apertar” */
+/* Ajuste para telas com altura até 800px (inclui 1366x768) */
 @media (max-height: 800px) {
     .login-left {
     padding: 14px;
@@ -288,6 +289,20 @@ async function handleLogin() {
   .btn-login {
     padding: 10px;
   }
+}
 
+/* Ajuste fino para 1366x768: formulário com largura fixa, foto ocupa o resto */
+@media (min-width: 1300px) and (max-width: 1440px) and (max-height: 800px) {
+  .login-left {
+    flex: 0 0 420px;
+  }
+
+  .login-right {
+    flex: 1;
+  }
+
+  .hero-image {
+    object-position: center 20%;
+  }
 }
 </style>

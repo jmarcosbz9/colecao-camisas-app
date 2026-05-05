@@ -309,7 +309,7 @@
         </div>
 
         <div v-if="errs._global" class="err bottom">{{ errs._global }}</div>
-      
+
     <PhotoViewerUpdate
       :open="pvOpen"
       :items="buildPvItems()"
@@ -361,9 +361,9 @@ import axios from "@/lib/http";
 import PhotoViewerUpdate from "@/components/PhotoViewerUpdate.vue";
 export default {
   name: 'FlaUpdate',
-  
+
   components: { PhotoViewerUpdate },
-props: {
+  props: {
     open: { type: Boolean, default: false },
     item: { type: Object, default: null },
   },
@@ -523,14 +523,6 @@ props: {
       }
     },
 
-    token() {
-      try {
-        return localStorage.getItem('token') || ''
-      } catch (e) {
-        return ''
-      }
-    },
-
     async fetchEnums() {
       // IMPORTANTE:
       // o endpoint atual do backend devolve:
@@ -553,7 +545,8 @@ props: {
 
         // se por algum motivo vier vazio (ex.: filtro de "wanted" não bateu), tenta sem querystring
         const allEmpty =
-          (!this.enums.Modelo || this.enums.Modelo.length === 0) &&          (!this.enums.Manga || this.enums.Manga.length === 0) &&
+          (!this.enums.Modelo || this.enums.Modelo.length === 0) &&
+          (!this.enums.Manga || this.enums.Manga.length === 0) &&
           (!this.enums.Conservacao || this.enums.Conservacao.length === 0)
 
         if (allEmpty) {
@@ -588,8 +581,6 @@ props: {
 
       this.enumsLoaded = true
     },
-
-    
 
     async fetchFornecedoras() {
       try {
@@ -644,11 +635,7 @@ props: {
       this.addForn.err = '';
 
       try {
-        const t = this.token();
-        const headers = {};
-        if (t) headers.Authorization = 'Bearer ' + t;
-
-        const res = await axios.post('/api/fornecedoras', { nome, contexto: 'flamengo' }, { headers });
+        const res = await axios.post('/api/fornecedoras', { nome, contexto: 'flamengo' });
         const created = res && res.data ? res.data : null;
 
         await this.fetchFornecedoras();
@@ -685,7 +672,8 @@ props: {
       }
       this.toggleDd(field)
     },
-toggleDd(field) {
+
+    toggleDd(field) {
       // fecha outros
       for (const k in this.ddOpen) {
         if (k !== field) this.ddOpen[k] = false
@@ -711,7 +699,7 @@ toggleDd(field) {
       this.form[field] = opt
       this.closeAllDd()
 
-      // foco “natural”
+      // foco "natural"
       if (field === 'Modelo') this.focusRef('fornecedora')
       if (field === 'Fornecedora') this.focusRef('manga')
       if (field === 'Manga') this.focusRef('periodo')
@@ -750,12 +738,12 @@ toggleDd(field) {
       if (!insideDd) this.closeAllDd()
     },
 
-    // Drag modal (mantém o que já estava OK)
+    // Drag modal
     onDragStart(e) {
       this.drag.on = true
-	  // cursor “closed hand”
-	  if (this.$refs.headerRef) this.$refs.headerRef.classList.add('grabbing')
-      	  this.drag.startX = e.clientX
+      // cursor "closed hand"
+      if (this.$refs.headerRef) this.$refs.headerRef.classList.add('grabbing')
+      this.drag.startX = e.clientX
       this.drag.startY = e.clientY
       this.drag.baseX = this.pos.x
       this.drag.baseY = this.pos.y
@@ -771,8 +759,8 @@ toggleDd(field) {
     },
     onDragEnd() {
       this.drag.on = false
-	  // volta para “open hand”
-	  if (this.$refs.headerRef) this.$refs.headerRef.classList.remove('grabbing')
+      // volta para "open hand"
+      if (this.$refs.headerRef) this.$refs.headerRef.classList.remove('grabbing')
       document.removeEventListener('mousemove', this.onDragMove)
       document.removeEventListener('mouseup', this.onDragEnd)
     },
@@ -791,7 +779,7 @@ toggleDd(field) {
       })
     },
 
-    // Preço (mesmo padrão “robusto” do OutrosTimesCreate)
+    // Preço (mesmo padrão "robusto" do OutrosTimesCreate)
     normalizePrecoFromDisplay(s) {
       if (s == null) return '0.00'
       let x = String(s).trim()
@@ -868,6 +856,7 @@ toggleDd(field) {
       this.$set ? this.$set(this.errs, k, msg) : (this.errs[k] = msg)
     },
 
+    // CORRIGIDO: verifica se há chaves com valor truthy, não apenas se há chaves
     validate() {
       this.resetErrors()
 
@@ -882,11 +871,14 @@ toggleDd(field) {
         this.setErr('Preco', 'Preencha o preço.')
       }
 
-      // se tem qualquer erro, falha
-      for (const k in this.errs) return false
+      // se tem qualquer erro com mensagem, falha
+      for (const k in this.errs) {
+        if (this.errs[k]) return false
+      }
       return true
     },
 
+    // CORRIGIDO: usa axios unificado em vez de fetch nativo (garante JWT automático)
     async submitUpdate() {
       if (this.saving) return
       if (this.editId == null) {
@@ -907,10 +899,9 @@ toggleDd(field) {
 
         const payload = {
           Fotos: this.existingFotos,
-
           Modelo: this.form.Modelo,
           Fornecedora: this.form.Fornecedora,
-        fornecedora_id: this.form.fornecedora_id,
+          fornecedora_id: this.form.fornecedora_id,
           Manga: this.form.Manga,
           Conservacao: this.form.Conservacao,
           Periodo: this.form.Periodo,
@@ -919,33 +910,17 @@ toggleDd(field) {
           Observacoes: this.form.Observacoes ? this.form.Observacoes : null
         }
 
-        const t = this.token()
-        const headers = {}
-        if (t) headers.Authorization = 'Bearer ' + t
-
         const url = '/api/flamengo/' + this.editId
 
         if (!this.photoItems || this.photoItems.length === 0) {
-          headers['Content-Type'] = 'application/json'
-          const res = await fetch(url, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify(payload)
-          })
-          if (!res.ok) throw new Error('update_failed')
+          await axios.put(url, payload)
         } else {
           const fd = new FormData()
           fd.append('payload', JSON.stringify(payload))
           for (let i = 0; i < this.photoItems.length; i++) {
             fd.append('fotos', this.photoItems[i].file)
           }
-
-          const res = await fetch(url, {
-            method: 'PUT',
-            headers, // só Authorization (NÃO setar Content-Type)
-            body: fd
-          })
-          if (!res.ok) throw new Error('update_failed')
+          await axios.put(url, fd)
         }
 
         this.$emit('success')
@@ -1199,7 +1174,6 @@ toggleDd(field) {
   opacity: 1;
 }
 
-/* Wrapper do dropdown (para posicionar o menu) */
 .dd-wrap{ position: relative; }
 
 /* Dropdown (caixa clicável) */
@@ -1233,16 +1207,16 @@ toggleDd(field) {
 /* Seta do dropdown + animação */
 .dd-arr{
   position: relative;
-  display: inline-flex;          /* de inline-block → inline-flex (centraliza o desenho) */
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;                   /* ligeiramente maior pra caber a box */
+  width: 22px;
   height: 22px;
   flex: 0 0 22px;
-  color: var(--fc-red);          /* mantém vermelho */
-  transform: rotate(0deg);       /* fechado = para baixo */
+  color: var(--fc-red);
+  transform: rotate(0deg);
   transition: transform 520ms cubic-bezier(.2,.8,.2,1), background-color 140ms ease, box-shadow 140ms ease;
-  border-radius: 6px;            /* cantos arredondados da box */
+  border-radius: 6px;
 }
 
 /* Box no hover do caret */
@@ -1278,7 +1252,7 @@ toggleDd(field) {
 
 /* aberto: ˄ */
 .dd-arr.open{
-  transform: rotate(-180deg);   /* anti-horário */
+  transform: rotate(-180deg);
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -1307,7 +1281,7 @@ toggleDd(field) {
 /* Hover do item do dropdown (faixa vermelha com texto preto) */
 .dd-item:hover{ background: var(--fc-red); color: #000; }
 
-/* Item de “sem valores” no dropdown */
+/* Item de "sem valores" no dropdown */
 .dd-item.dd-empty{ color: rgba(255,255,255,.55); font-weight: 700; cursor: default; }
 .dd-item.dd-empty:hover{ background: transparent; color: rgba(255,255,255,.55); }
 
@@ -1373,7 +1347,7 @@ toggleDd(field) {
 .err{ margin-top: 6px; color: #d32f2f; font-weight: 900; font-size: 12px; }
 .err.bottom{ margin-top: 10px; }
 
-/* Link “Não encontrou a fornecedora?” (abaixo do dropdown, canto inferior direito) */
+/* Link "Não encontrou a fornecedora?" (abaixo do dropdown, canto inferior direito) */
 .forn-help-link{
   display:block;
   width: 100%;
@@ -1425,4 +1399,3 @@ toggleDd(field) {
 .ex-empty{ font-size: 12px; opacity: .75; margin: 6px 0 10px; }
 
 </style>
-
