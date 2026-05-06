@@ -565,6 +565,9 @@ applyItemToForm() {
           this.precoDisplay = "";
         }
       }
+
+      // fotos existentes
+      this.existingFotos = this.parseFotosFromItem(it);
     },
     
     /* ---------- Draft (rascunho) ---------- */
@@ -737,7 +740,7 @@ focusRef(refName) {
         );
         const cols = r && r.data && r.data.columns ? r.data.columns : null;
         if (cols) {
-this.enumOptions.Manga = Array.isArray(cols.Manga) ? cols.Manga : [];
+          this.enumOptions.Manga = Array.isArray(cols.Manga) ? cols.Manga : [];
           this.enumOptions.Conservacao = Array.isArray(cols.Conservacao) ? cols.Conservacao : [];
           this.enumOptions.Modelo = Array.isArray(cols.Modelo) ? cols.Modelo : [];
           return;
@@ -747,7 +750,7 @@ this.enumOptions.Manga = Array.isArray(cols.Manga) ? cols.Manga : [];
       try {
         const r2 = await axios.get("/api/outros_times/filters");
         const j = r2 && r2.data ? r2.data : {};
-this.enumOptions.Manga = Array.isArray(j.Manga) ? j.Manga : [];
+        this.enumOptions.Manga = Array.isArray(j.Manga) ? j.Manga : [];
         this.enumOptions.Conservacao = Array.isArray(j.Conservacao) ? j.Conservacao : [];
         this.enumOptions.Modelo = Array.isArray(j.Modelo) ? j.Modelo : [];
       } catch (e2) {}
@@ -898,24 +901,33 @@ this.enumOptions.Manga = Array.isArray(j.Manga) ? j.Manga : [];
         : [];
       this.addFiles(files);
     },
-    addFiles(files) {
-      const onlyImg = files.filter(f => f && f.type && f.type.indexOf('image/') === 0)
 
-      const existCount = (this.existingFotos ? this.existingFotos.length : 0)
-      const maxNew = Math.max(0, 6 - existCount)
+    // FIX: usava { file, name, preview } mas o template espera { file, name, url, key }
+    addFiles(files) {
+      const onlyImg = files.filter(f => f && f.type && f.type.indexOf('image/') === 0);
+
+      const existCount = (this.existingFotos ? this.existingFotos.length : 0);
+      const maxNew = Math.max(0, 6 - existCount);
 
       for (let i = 0; i < onlyImg.length; i++) {
-        if (this.photoItems.length >= maxNew) break
-        const f = onlyImg[i]
-        const preview = URL.createObjectURL(f)
-        this.photoItems.push({ file: f, name: f.name, preview })
+        if (this.photoItems.length >= maxNew) break;
+        const f = onlyImg[i];
+        let url = '';
+        try { url = URL.createObjectURL(f); } catch (e) { url = ''; }
+        this.photoItems.push({
+          key: 'p_' + Date.now() + '_' + i + '_' + Math.random().toString(16).slice(2),
+          file: f,
+          name: f.name,
+          url: url
+        });
       }
 
-      if (this.photoItems.length > maxNew) this.photoItems = this.photoItems.slice(0, maxNew)
+      if (this.photoItems.length > maxNew) this.photoItems = this.photoItems.slice(0, maxNew);
 
-      if (existCount + this.photoItems.length > 6) this.errs.Fotos = 'Máximo de 6 fotos por registro.'
-      else if (this.errs && this.errs.Fotos) this.errs.Fotos = ''
+      if (existCount + this.photoItems.length > 6) this.errors.Fotos = 'Máximo de 6 fotos por registro.';
+      else if (this.errors && this.errors.Fotos) this.errors.Fotos = '';
     },
+
     removePhoto(idx) {
       if (idx < 0 || idx >= this.photoItems.length) return;
       const it = this.photoItems[idx];
@@ -1009,6 +1021,8 @@ this.enumOptions.Manga = Array.isArray(j.Manga) ? j.Manga : [];
 
       this.revokeAllObjectUrls();
       this.photoItems = [];
+      this.existingFotos = [];
+      this.pendingDelete = [];
       this.dzOver = false;
     },
 
@@ -1213,7 +1227,7 @@ this.enumOptions.Manga = Array.isArray(j.Manga) ? j.Manga : [];
   font-weight: 400;
 }
 .dd-val.ph{
-  /* Placeholder “— Selecione —” no mesmo tom dos hints */
+  /* Placeholder "— Selecione —" no mesmo tom dos hints */
   color: rgba(255,255,255,.75);
   font-weight: 400;
 }

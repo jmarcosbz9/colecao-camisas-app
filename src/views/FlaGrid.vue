@@ -546,10 +546,6 @@ export default {
     window.removeEventListener('user-updated', this.onUserUpdated)
   },
 
-  beforeUnmount() {
-    window.removeEventListener('user-updated', this.onUserUpdated)
-  },
-
   methods: {
     /* ---------- Auth / Role ---------- */
     refreshRole() {

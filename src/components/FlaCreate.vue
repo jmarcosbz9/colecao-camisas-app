@@ -260,8 +260,8 @@
               </div>
 
               <div v-else class="dz-grid">
-                <div v-for="(it, idx) in photoItems" :key="'p-' + idx" class="dz-item">
-                  <img class="dz-img" :src="it.preview" alt="" />
+                <div v-for="(it, idx) in photoItems" :key="it.key" class="dz-item">
+                  <img class="dz-img" :src="it.url" :alt="it.name" />
                   <div class="dz-name" :title="it.name">{{ it.name }}</div>
                   <button type="button" class="dz-rm" @click.stop="removePhoto(idx)">×</button>
                 </div>
@@ -727,16 +727,24 @@ export default {
         if (this.photoItems.length >= 6) break
         const f = onlyImg[i]
         const preview = URL.createObjectURL(f)
-        this.photoItems.push({ file: f, name: f.name, preview })
+        this.photoItems.push({ key: 'p_' + Date.now() + '_' + i + '_' + Math.random().toString(16).slice(2), file: f, name: f.name, url: preview })
       }
       if (this.photoItems.length > 6) this.photoItems = this.photoItems.slice(0, 6)
     },
     removePhoto(idx) {
       try {
         const it = this.photoItems[idx]
-        if (it && it.preview) URL.revokeObjectURL(it.preview)
+        if (it && it.url) URL.revokeObjectURL(it.url)
       } catch (e) {}
       this.photoItems.splice(idx, 1)
+    },
+    revokeAllObjectUrls() {
+      for (let i = 0; i < this.photoItems.length; i++) {
+        const it = this.photoItems[i]
+        if (it && it.url) {
+          try { URL.revokeObjectURL(it.url) } catch (e) {}
+        }
+      }
     },
 
     // Erros
@@ -818,6 +826,8 @@ export default {
 
     close() {
       this.closeAllDd()
+      this.revokeAllObjectUrls()
+      this.photoItems = []
       this.$emit('close')
     }
   }

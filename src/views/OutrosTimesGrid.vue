@@ -24,8 +24,7 @@
 
     <div class="container">
       <!-- Painel de Filtros Modular -->
-      <div class="filters-col">
-        <OutrosTimesFiltros
+      <OutrosTimesFiltros
         :filters="filters"
         :selected="selected"
         :ranges="ranges"
@@ -33,7 +32,6 @@
         @update:ranges="onUpdateRanges"
         @clear-all="clearAllFilters"
       />
-      </div>
 
       <!-- GRID -->
       <section class="grid-panel grid-col">
@@ -208,12 +206,12 @@
                 <!-- Dados -->
                 <td>{{ row.Id ?? row.id ?? row.Codigo }}</td>
                 <td v-html="highlightMatch(row.Equipe, searchTerm)"></td>
-                <td>{{ row.Fornecedora }}</td>
-                <td>{{ row.Modelo }}</td>
-                <td>{{ row.Manga }}</td>
-                <td>{{ row.Conservacao }}</td>
-                <td>{{ row.Periodo }}</td>
-                <td class="cell-numero">{{ row.Numero }}</td>
+                <td v-html="highlightMatch(row.Fornecedora, searchTerm)"></td>
+                <td v-html="highlightMatch(row.Modelo, searchTerm)"></td>
+                <td v-html="highlightMatch(row.Manga, searchTerm)"></td>
+                <td v-html="highlightMatch(row.Conservacao, searchTerm)"></td>
+                <td v-html="highlightMatch(periodoText(row), searchTerm)"></td>
+                <td class="cell-numero" v-html="highlightMatch(row.Numero, searchTerm)"></td>
 
                 <!-- Observações -->
                 <td class="obs-cell">
@@ -587,6 +585,14 @@ export default {
       return n.toLocaleString('pt-BR')
     },
 
+    // Exibição do período no grid (paralelo ao FlaGrid)
+    periodoText(row) {
+      const p = row?.Periodo
+      if (p != null && String(p).trim() !== '') return String(p)
+      const a = row?.AnoInicio
+      return a != null ? String(a) : ''
+    },
+
     highlightMatch(text, search) {
       if (!search || !text) return text || ''
 
@@ -644,13 +650,60 @@ export default {
       this.photoIndex = (payload && typeof payload.index === 'number') ? payload.index : 0
       this.photoItems = Array.isArray(payload && payload.items) ? payload.items.slice() : []
       this.photoOpen = this.photoItems.length > 0
-    },  
+    },
 
     openView(row) {
-      if (row?.Fotos && Array.isArray(row.Fotos) && row.Fotos.length > 0) {
-        this.currentFotos = row.Fotos
-        this.thumbsOpen = true
+      // Ícone "Visualizar": abre a 1ª foto do registro no PhotoViewer (paralelo ao FlaGrid)
+      const items = this.buildPhotoItemsFromFotos(row ? row.Fotos : null)
+      if (!items.length) return
+      this.photoItems = items
+      this.photoIndex = 0
+      this.photoOpen = true
+    },
+
+    buildPhotoItemsFromFotos(raw) {
+      const arr = this.parseFotos(raw)
+      if (!arr.length) return []
+      const base = '/uploads'
+      const out = []
+      for (let i = 0; i < arr.length; i++) {
+        const f = arr[i] || {}
+        const thumbPath = f.thumbnail || f.thumb || ''
+        const fullPath = f.name || f.file || f.full || ''
+        const thumbSrc = thumbPath ? this.makeUploadsUrl(base, thumbPath) : ''
+        const fullSrc = fullPath ? this.makeUploadsUrl(base, fullPath) : (thumbSrc || '')
+        if (!thumbSrc && !fullSrc) continue
+        out.push({ thumbSrc: thumbSrc || fullSrc, fullSrc: fullSrc || thumbSrc, raw: f })
       }
+      return out
+    },
+
+    parseFotos(raw) {
+      if (!raw) return []
+      if (Array.isArray(raw)) return raw
+      if (typeof raw === 'object') return [raw]
+      if (typeof raw === 'string') {
+        let s = raw.trim()
+        if ((s[0] === "'" && s[s.length - 1] === "'") || (s[0] === '"' && s[s.length - 1] === '"')) {
+          s = s.slice(1, -1)
+        }
+        try {
+          const parsed = JSON.parse(s)
+          return Array.isArray(parsed) ? parsed : (parsed ? [parsed] : [])
+        } catch (e) {
+          return []
+        }
+      }
+      return []
+    },
+
+    makeUploadsUrl(base, path) {
+      const p = String(path || '').trim()
+      if (!p) return ''
+      if (/^https?:\/\//i.test(p)) return p
+      const clean = p.replace(/^\/+/, '')
+      const b = String(base || '').replace(/\/+$/, '')
+      return (b ? b + '/' : '/') + clean
     },
 
     openEdit(_row) {
@@ -1335,7 +1388,7 @@ export default {
 
 
 /* Colunas explícitas para evitar qualquer comportamento de "stack" */
-.filters-col { min-width: 0; }
+
 .grid-col { min-width: 0; }
 
 /* ============================================================
