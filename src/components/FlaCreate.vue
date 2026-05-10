@@ -953,9 +953,9 @@ export default {
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid rgba(0,0,0,.35);
-  background: #1b1b1b;
+  background: #fff;
   font-size: 14px;
-  color: #fff;
+  color: #111;
   box-sizing: border-box;
   outline: none;
   resize: vertical;
