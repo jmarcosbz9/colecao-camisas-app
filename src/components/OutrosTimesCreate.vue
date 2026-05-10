@@ -235,7 +235,6 @@
               v-model.trim="form.Observacoes"
               class="ta"
               rows="3"
-              spellcheck="false"
             ></textarea>
           </div>
         </div>
